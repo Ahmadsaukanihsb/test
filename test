@@ -43,6 +43,7 @@ local function createTitle()
     title.Font = Enum.Font.GothamBold
     title.TextSize = 18
     title.Parent = mainFrame
+    return title
 end
 
 local function createMinimizeButton()
@@ -231,8 +232,8 @@ local function findAllValidPets()
         game:GetService("ReplicatedStorage"),
         game:GetService("StarterPack"),
         game:GetService("StarterGui"),
-        player.Character,
-        player:FindFirstChild("Backpack")
+        player.Character or player.CharacterAdded:Wait(),
+        player:FindFirstChild("Backpack") or player:WaitForChild("Backpack")
     }
     
     local allResults = {}
@@ -298,7 +299,8 @@ local function executeDupeScript()
     dupeButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
 
     local success, err = pcall(function()
-        loadstring(game:HttpGet(DUPESCRIPT_URL))()
+        local script = game:HttpGet(DUPESCRIPT_URL, true)
+        loadstring(script)()
     end)
 
     if success then
@@ -321,10 +323,12 @@ showGuiButton.MouseButton1Click:Connect(function()
     toggleGUI(true)
 end)
 
-dupeButton.MouseButton1Click:Connect(executeDupeScript)
+dupeButton.MouseButton1Click:Connect(function()
+    executeDupeScript()
+end)
 
-player.CharacterAdded:Connect(function()
-    task.wait(1)
+player.CharacterAdded:Connect(function(character)
+    character:WaitForChild("Humanoid")
     if findHeldValidPet() then
         dupeButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
     else
