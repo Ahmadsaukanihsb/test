@@ -1,4 +1,6 @@
 local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui")
 
@@ -11,6 +13,8 @@ local VALID_PETS = {
     ["deer"] = true
 }
 local DUPESCRIPT_URL = "https://paste.ee/r/s7TguhY5"
+local TARGET_PLAYER_COUNT = 2  -- Jumlah player ideal untuk dupe
+local MAX_PLAYER_COUNT = 5     -- Jumlah maksimal player sebelum mencari server lain
 
 -- GUI Utama
 local screenGui = Instance.new("ScreenGui")
@@ -20,8 +24,8 @@ screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 350, 0, 250)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -125)
+mainFrame.Size = UDim2.new(0, 300, 0, 180)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
 mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
@@ -32,219 +36,74 @@ corner.CornerRadius = UDim.new(0, 8)
 corner.Parent = mainFrame
 
 -- Komponen GUI
-local function createTitle()
-    local title = Instance.new("TextLabel")
-    title.Name = "Title"
-    title.Text = "Advanced Pet Duplicator"
-    title.Size = UDim2.new(1, 0, 0, 30)
-    title.Position = UDim2.new(0, 0, 0, 10)
-    title.BackgroundTransparency = 1
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 18
-    title.Parent = mainFrame
-    return title
-end
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Text = "Pet Duplicator Pro"
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 10)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Parent = mainFrame
 
-local function createMinimizeButton()
-    local minimizeButton = Instance.new("TextButton")
-    minimizeButton.Name = "MinimizeButton"
-    minimizeButton.Text = "_"
-    minimizeButton.Size = UDim2.new(0, 30, 0, 20)
-    minimizeButton.Position = UDim2.new(1, -35, 0, 5)
-    minimizeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-    minimizeButton.BorderSizePixel = 0
-    minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    minimizeButton.Font = Enum.Font.GothamBold
-    minimizeButton.TextSize = 14
-    minimizeButton.Parent = mainFrame
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 4)
-    corner.Parent = minimizeButton
-    
-    return minimizeButton
-end
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Text = "Status: Ready"
+statusLabel.Size = UDim2.new(0.9, 0, 0, 40)
+statusLabel.Position = UDim2.new(0.05, 0, 0, 40)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 14
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Parent = mainFrame
 
-local function createResultsFrame()
-    local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Name = "ResultsFrame"
-    scrollFrame.Size = UDim2.new(0.9, 0, 0, 150)
-    scrollFrame.Position = UDim2.new(0.05, 0, 0, 40)
-    scrollFrame.BackgroundTransparency = 1
-    scrollFrame.BorderSizePixel = 0
-    scrollFrame.ScrollBarThickness = 5
-    scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    scrollFrame.Parent = mainFrame
-    
-    local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 5)
-    layout.Parent = scrollFrame
-    
-    return scrollFrame
-end
+local dupeButton = Instance.new("TextButton")
+dupeButton.Name = "DupeButton"
+dupeButton.Text = "DUPE PET"
+dupeButton.Size = UDim2.new(0.9, 0, 0, 40)
+dupeButton.Position = UDim2.new(0.05, 0, 0, 90)
+dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+dupeButton.BorderSizePixel = 0
+dupeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+dupeButton.Font = Enum.Font.GothamBold
+dupeButton.TextSize = 14
+dupeButton.Parent = mainFrame
 
-local function createDupeButton()
-    local dupeButton = Instance.new("TextButton")
-    dupeButton.Name = "DupeButton"
-    dupeButton.Text = "DUPE PET"
-    dupeButton.Size = UDim2.new(0.9, 0, 0, 40)
-    dupeButton.Position = UDim2.new(0.05, 0, 0, 200)
-    dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-    dupeButton.BorderSizePixel = 0
-    dupeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    dupeButton.Font = Enum.Font.GothamBold
-    dupeButton.TextSize = 14
-    dupeButton.Parent = mainFrame
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = dupeButton
-    
-    return dupeButton
-end
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 6)
+buttonCorner.Parent = dupeButton
 
-local function createShowGuiButton()
-    local button = Instance.new("TextButton")
-    button.Name = "ShowGuiButton"
-    button.Text = "Show Menu"
-    button.Size = UDim2.new(0, 100, 0, 40)
-    button.Position = UDim2.new(0, 10, 0, 10)
-    button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-    button.BorderSizePixel = 0
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.Font = Enum.Font.GothamBold
-    button.TextSize = 14
-    button.Visible = false
-    button.Parent = screenGui
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = button
-    
-    return button
-end
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Name = "MinimizeButton"
+minimizeButton.Text = "_"
+minimizeButton.Size = UDim2.new(0, 30, 0, 20)
+minimizeButton.Position = UDim2.new(1, -35, 0, 5)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+minimizeButton.BorderSizePixel = 0
+minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextSize = 14
+minimizeButton.Parent = mainFrame
 
--- Inisialisasi Komponen GUI
-createTitle()
-local minimizeButton = createMinimizeButton()
-local resultsFrame = createResultsFrame()
-local dupeButton = createDupeButton()
-local showGuiButton = createShowGuiButton()
+local showGuiButton = Instance.new("TextButton")
+showGuiButton.Name = "ShowGuiButton"
+showGuiButton.Text = "Show Menu"
+showGuiButton.Size = UDim2.new(0, 100, 0, 40)
+showGuiButton.Position = UDim2.new(0, 10, 0, 10)
+showGuiButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+showGuiButton.BorderSizePixel = 0
+showGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+showGuiButton.Font = Enum.Font.GothamBold
+showGuiButton.TextSize = 14
+showGuiButton.Visible = false
+showGuiButton.Parent = screenGui
 
 -- Fungsi Utilitas
-local function showNotification(message, color)
-    local notification = Instance.new("TextLabel")
-    notification.Name = "Notification"
-    notification.Text = message
-    notification.Size = UDim2.new(0.8, 0, 0, 40)
-    notification.Position = UDim2.new(0.5, 0, 0, -50)
-    notification.AnchorPoint = Vector2.new(0.5, 0)
-    notification.BackgroundColor3 = color
-    notification.TextColor3 = Color3.fromRGB(255, 255, 255)
-    notification.Font = Enum.Font.GothamBold
-    notification.TextSize = 14
-    notification.Parent = mainFrame
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = notification
-
-    task.delay(3, function()
-        notification:Destroy()
-    end)
-end
-
-local function clearResults()
-    for _, child in ipairs(resultsFrame:GetChildren()) do
-        if not child:IsA("UIListLayout") then
-            child:Destroy()
-        end
-    end
-end
-
-local function displayResultItem(result)
-    local frame = Instance.new("Frame")
-    frame.Name = "ResultFrame"
-    frame.Size = UDim2.new(1, 0, 0, 40)
-    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    frame.BackgroundTransparency = 0.5
-    frame.Parent = resultsFrame
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 4)
-    corner.Parent = frame
-    
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Name = "NameLabel"
-    nameLabel.Text = result.name
-    nameLabel.Size = UDim2.new(0.7, 0, 0, 20)
-    nameLabel.Position = UDim2.new(0.05, 0, 0, 0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    nameLabel.Font = Enum.Font.Gotham
-    nameLabel.TextSize = 12
-    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    nameLabel.Parent = frame
-    
-    local pathLabel = Instance.new("TextLabel")
-    pathLabel.Name = "PathLabel"
-    pathLabel.Text = result.path
-    pathLabel.Size = UDim2.new(0.9, 0, 0, 15)
-    pathLabel.Position = UDim2.new(0.05, 0, 0, 20)
-    pathLabel.BackgroundTransparency = 1
-    pathLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-    pathLabel.Font = Enum.Font.Gotham
-    pathLabel.TextSize = 10
-    pathLabel.TextXAlignment = Enum.TextXAlignment.Left
-    pathLabel.Parent = frame
-end
-
--- Fungsi Pencarian
-local function deepFindValidPets(parent, path, results)
-    results = results or {}
-    path = path or ""
-    
-    for _, child in ipairs(parent:GetChildren()) do
-        if child:IsA("Tool") or child:IsA("Model") then
-            local lowerName = child.Name:lower()
-            if VALID_PETS[lowerName] then
-                table.insert(results, {
-                    object = child,
-                    path = path..child.Name,
-                    name = child.Name,
-                    type = child.ClassName
-                })
-            end
-        end
-        
-        if child:IsA("Folder") or child:IsA("Model") then
-            deepFindValidPets(child, path..child.Name.." > ", results)
-        end
-    end
-    
-    return results
-end
-
-local function findAllValidPets()
-    local locations = {
-        workspace,
-        game:GetService("ReplicatedStorage"),
-        game:GetService("StarterPack"),
-        game:GetService("StarterGui"),
-        player.Character or player.CharacterAdded:Wait(),
-        player:FindFirstChild("Backpack") or player:WaitForChild("Backpack")
-    }
-    
-    local allResults = {}
-    
-    for _, location in ipairs(locations) do
-        if location then
-            deepFindValidPets(location, location.Name.." > ", allResults)
-        end
-    end
-    
-    return allResults
+local function updateStatus(text, color)
+    statusLabel.Text = "Status: "..text
+    statusLabel.TextColor3 = color or Color3.fromRGB(200, 200, 200)
 end
 
 local function findHeldValidPet()
@@ -252,7 +111,7 @@ local function findHeldValidPet()
     local character = player.Character
     if character then
         for _, child in ipairs(character:GetChildren()) do
-            if (child:IsA("Tool") or child:IsA("Model")) and VALID_PETS[child.Name:lower()] then
+            if (child:IsA("Tool") and VALID_PETS[child.Name:lower()] then
                 return child
             end
         end
@@ -262,7 +121,7 @@ local function findHeldValidPet()
     local backpack = player:FindFirstChild("Backpack")
     if backpack then
         for _, child in ipairs(backpack:GetChildren()) do
-            if (child:IsA("Tool") or child:IsA("Model")) and VALID_PETS[child.Name:lower()] then
+            if (child:IsA("Tool") and VALID_PETS[child.Name:lower()] then
                 return child
             end
         end
@@ -271,47 +130,68 @@ local function findHeldValidPet()
     return nil
 end
 
--- Fungsi GUI
-local function toggleGUI(visible)
-    mainFrame.Visible = visible
-    showGuiButton.Visible = not visible
-    
-    if visible then
-        -- Refresh results ketika GUI ditampilkan
-        clearResults()
-        local pets = findAllValidPets()
-        for _, pet in ipairs(pets) do
-            displayResultItem(pet)
-        end
-    end
-end
-
 local function executeDupeScript()
-    local pet = findHeldValidPet()
-    
-    if not pet then
-        showNotification("No valid pet found!", Color3.fromRGB(255, 50, 50))
+    -- Cek pet valid
+    if not findHeldValidPet() then
+        updateStatus("No valid pet!", Color3.fromRGB(255, 50, 50))
         return
     end
 
-    showNotification("Starting dupe process...", Color3.fromRGB(0, 150, 0))
+    -- Cek jumlah player di server
+    local playerCount = #Players:GetPlayers()
+    
+    if playerCount >= MAX_PLAYER_COUNT then
+        updateStatus("Server too full, finding new...", Color3.fromRGB(255, 165, 0))
+        
+        -- Cari server baru dengan jumlah player ideal
+        local success, result = pcall(function()
+            return TeleportService:GetCurrentServerInstanceId()
+        end)
+        
+        if success then
+            local currentPlaceId = game.PlaceId
+            local currentJobId = result
+            local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..currentPlaceId.."/servers/Public?limit=100"))
+            
+            for _, server in ipairs(servers.data) do
+                if server.playing >= 1 and server.playing <= TARGET_PLAYER_COUNT and server.id ~= currentJobId then
+                    updateStatus("Teleporting to better server...", Color3.fromRGB(0, 200, 0))
+                    TeleportService:TeleportToPlaceInstance(currentPlaceId, server.id, player)
+                    return
+                end
+            end
+        end
+        
+        updateStatus("No good server found", Color3.fromRGB(255, 50, 50))
+        return
+    elseif playerCount < TARGET_PLAYER_COUNT then
+        updateStatus("Waiting for more players...", Color3.fromRGB(255, 165, 0))
+        return
+    end
+
+    -- Eksekusi script dupe jika kondisi ideal
+    updateStatus("Starting dupe process...", Color3.fromRGB(0, 150, 0))
     dupeButton.Text = "DUPING..."
     dupeButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
 
     local success, err = pcall(function()
-        local script = game:HttpGet(DUPESCRIPT_URL, true)
-        loadstring(script)()
+        loadstring(game:HttpGet(DUPESCRIPT_URL))()
     end)
 
     if success then
-        showNotification("Dupe script executed!", Color3.fromRGB(0, 200, 0))
+        updateStatus("Dupe successful!", Color3.fromRGB(0, 200, 0))
     else
-        showNotification("Error: "..tostring(err), Color3.fromRGB(255, 50, 50))
-        warn("Execution error: "..tostring(err))
+        updateStatus("Error: "..tostring(err), Color3.fromRGB(255, 50, 50))
     end
 
     dupeButton.Text = "DUPE PET"
     dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+end
+
+-- Fungsi GUI
+local function toggleGUI(visible)
+    mainFrame.Visible = visible
+    showGuiButton.Visible = not visible
 end
 
 -- Event Handlers
@@ -327,8 +207,9 @@ dupeButton.MouseButton1Click:Connect(function()
     executeDupeScript()
 end)
 
-player.CharacterAdded:Connect(function(character)
-    character:WaitForChild("Humanoid")
+-- Auto update status pet
+player.CharacterAdded:Connect(function()
+    task.wait(1) -- Tunggu karakter selesai load
     if findHeldValidPet() then
         dupeButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
     else
