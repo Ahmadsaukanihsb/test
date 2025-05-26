@@ -13,25 +13,26 @@ local VALID_PETS = {
 }
 
 -- Fungsi rekursif untuk mencari hewan peliharaan valid secara mendalam
-local function searchRecursivelyForPet(parentInstance)
+local function searchRecursivelyForPet(parentInstance, pathPrefix)
+    pathPrefix = pathPrefix or parentInstance.Name
     if not parentInstance then return nil end
 
-    -- print("  Mencari di dalam:", parentInstance:GetFullName()) -- Debug: untuk melihat path pencarian
+    -- print("  Mencari di dalam:", pathPrefix) -- Debug: untuk melihat path pencarian
 
     for _, child in ipairs(parentInstance:GetChildren()) do
+        local currentPath = pathPrefix .. " > " .. child.Name
         -- Periksa apakah child adalah Tool atau Model yang valid
         if (child:IsA("Tool") or child:IsA("Model")) then
-            -- print("    Menemukan item:", child.Name, "| Tipe:", child.ClassName) -- Debug
+            -- print("    Menemukan item:", child.Name, "| Tipe:", child.ClassName, "| Path:", currentPath) -- Debug
             if VALID_PETS[child.Name:lower()] then
-                print("      --> Hewan valid ditemukan:", child.Name, "di", parentInstance:GetFullName())
+                print("      --> Hewan valid ditemukan:", child.Name, "di", currentPath)
                 return child
             end
         end
 
         -- Jika child adalah container, cari di dalamnya secara rekursif
-        -- Anda bisa menambahkan lebih banyak tipe container jika perlu (misalnya, "Accessory", "Hat")
-        if child:IsA("Folder") or child:IsA("Model") or child:IsA("Tool") or child:IsA("BackpackItem") then -- BackpackItem adalah tipe khusus untuk item di backpack
-            local foundPetInChild = searchRecursivelyForPet(child)
+        if child:IsA("Folder") or child:IsA("Model") or child:IsA("Tool") or child:IsA("BackpackItem") or child:IsA("ScreenGui") or child:IsA("Frame") then
+            local foundPetInChild = searchRecursivelyForPet(child, currentPath)
             if foundPetInChild then
                 return foundPetInChild -- Kembalikan jika ditemukan di sub-item
             end
@@ -40,37 +41,54 @@ local function searchRecursivelyForPet(parentInstance)
     return nil -- Tidak ditemukan di level ini atau sub-levelnya
 end
 
--- Fungsi untuk memeriksa apakah pemain memegang hewan peliharaan yang valid (dengan pencarian rekursif)
-local function findHeldValidPet()
-    if not player then return nil end
-
-    print("Mulai pencarian hewan peliharaan valid secara mendalam...")
-
-    -- Cek karakter (apa yang sedang dipegang/dipakai)
-    local character = player.Character
-    if character then
-        print("Memeriksa karakter:", character.Name)
-        local petInCharacter = searchRecursivelyForPet(character)
-        if petInCharacter then
-            return petInCharacter
-        end
-    else
-        print("Karakter pemain tidak ditemukan.")
+-- Fungsi untuk memeriksa apakah ada hewan peliharaan valid di lokasi yang dapat diakses (dengan pencarian rekursif)
+local function findFirstValidPetInAccessibleLocations()
+    if not player then
+        print("Pemain lokal tidak ditemukan, pencarian dibatalkan.")
+        return nil
     end
 
-    -- Cek backpack (inventaris)
-    local backpack = player:FindFirstChild("Backpack")
-    if backpack then
-        print("Memeriksa backpack:", backpack.Name)
-        local petInBackpack = searchRecursivelyForPet(backpack)
-        if petInBackpack then
-            return petInBackpack
-        end
+    print("Mulai pencarian hewan peliharaan valid secara mendalam di lokasi-lokasi penting...")
+
+    -- Lokasi-lokasi penting untuk dicari (ServerStorage dihilangkan karena tidak dapat diakses oleh LocalScript)
+    local character = player.Character or player:WaitForChild("Character", 5) -- Tunggu karakter maks 5 detik
+    local backpack = player:FindFirstChild("Backpack") or player:WaitForChild("Backpack", 5) -- Tunggu backpack maks 5 detik
+
+    local importantLocations = {
+        game:GetService("Workspace"),
+        game:GetService("ReplicatedStorage"),
+        -- game:GetService("ServerStorage"), -- Tidak dapat diakses oleh LocalScript
+        game:GetService("StarterPack"),
+        game:GetService("StarterGui"),
+        playerGui -- Cari juga di PlayerGui pemain saat ini
+    }
+    -- Tambahkan karakter dan backpack jika ada
+    if character then
+        table.insert(importantLocations, character)
     else
-        print("Backpack pemain tidak ditemukan.")
+        print("Karakter pemain tidak ditemukan atau tidak sempat dimuat untuk pencarian.")
+    end
+    if backpack then
+        table.insert(importantLocations, backpack)
+    else
+        print("Backpack pemain tidak ditemukan atau tidak sempat dimuat untuk pencarian.")
+    end
+
+
+    for i, location in ipairs(importantLocations) do
+        if location then
+            print("Memeriksa lokasi:", location:GetFullName())
+            local petFound = searchRecursivelyForPet(location)
+            if petFound then
+                print("Hewan peliharaan valid ditemukan di lokasi utama:", location:GetFullName())
+                return petFound
+            end
+        else
+            print("Lokasi ke-" .. i .. " adalah nil atau tidak valid.")
+        end
     end
     
-    print("Tidak ada hewan peliharaan valid yang ditemukan setelah pemeriksaan mendalam.")
+    print("Tidak ada hewan peliharaan valid yang ditemukan setelah pemeriksaan mendalam di semua lokasi.")
     return nil -- Tidak ada hewan peliharaan valid yang ditemukan
 end
 
@@ -254,33 +272,27 @@ local function createMainGui()
     
     tryAgainButton.MouseButton1Click:Connect(function()
         print("Tombol 'Try Again' diklik! Memeriksa hewan peliharaan...")
-        local heldPet = findHeldValidPet()
+        local foundPet = findFirstValidPetInAccessibleLocations() -- Menggunakan fungsi pencarian yang baru
 
-        if heldPet then
-            print("Hewan peliharaan valid ditemukan:", heldPet.Name)
-            errorText.Text = "Pet '" .. heldPet.Name .. "' found!"
+        if foundPet then
+            print("Hewan peliharaan valid ditemukan:", foundPet.Name)
+            errorText.Text = "Pet '" .. foundPet.Name .. "' found!"
             errorText.TextColor3 = Color3.fromRGB(46, 204, 113) -- Warna hijau untuk sukses
             errorIcon.Text = "✓" -- Ikon centang
             errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
-            -- Di sini Anda bisa mengubah tombol "Try Again" menjadi "Start Duplicating" atau semacamnya
-            -- tryAgainButton.Text = "Start Duplicating"
-            -- tryAgainButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113) 
         else
-            print("Tidak ada hewan peliharaan valid yang dipegang.")
+            print("Tidak ada hewan peliharaan valid yang dipegang atau ditemukan di lokasi penting.")
             errorText.Text = "Required pet not found"
             errorText.TextColor3 = Color3.fromRGB(231, 76, 60) -- Warna merah
             errorIcon.Text = "X"
             errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
-            -- Pastikan tombol kembali ke status "Try Again" jika sebelumnya diubah
-            -- tryAgainButton.Text = "🔄 Try Again"
-            -- tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
         end
     end)
 
     -- Pengecekan awal saat GUI pertama kali muncul
-    local initialHeldPet = findHeldValidPet()
-    if initialHeldPet then
-        errorText.Text = "Pet '" .. initialHeldPet.Name .. "' found!"
+    local initialPet = findFirstValidPetInAccessibleLocations() -- Menggunakan fungsi pencarian yang baru
+    if initialPet then
+        errorText.Text = "Pet '" .. initialPet.Name .. "' found!"
         errorText.TextColor3 = Color3.fromRGB(46, 204, 113)
         errorIcon.Text = "✓"
         errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
