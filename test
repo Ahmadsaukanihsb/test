@@ -21,7 +21,6 @@ local TARGET_PLAYER_COUNT_FOR_DUPE = 3
 local MAX_PLAYER_COUNT_BEFORE_SWITCH = 5 
 
 -- Fungsi untuk memeriksa apakah pemain sedang memegang hewan peliharaan yang valid
--- Hanya memeriksa anak langsung dari karakter (item yang di-equip)
 local function findCurrentlyHeldPet()
     if not player then
         print("Pemain lokal tidak ditemukan, pencarian dibatalkan.")
@@ -31,7 +30,7 @@ local function findCurrentlyHeldPet()
     
     local character = player.Character
     if not character then
-        character = player.CharacterAdded:Wait() -- Tunggu karakter jika belum ada
+        character = player.CharacterAdded:Wait() 
         if not character then
              print("Karakter pemain tidak ditemukan setelah menunggu.")
             return nil
@@ -39,23 +38,33 @@ local function findCurrentlyHeldPet()
     end
     
     print("Memeriksa item yang dipegang oleh karakter:", character.Name)
-    for _, child in ipairs(character:GetChildren()) do
-        -- Hanya periksa Tool, karena biasanya item yang dipegang adalah Tool
-        if child:IsA("Tool") then 
-            if VALID_PETS[child.Name:lower()] then
-                print("      --> Hewan valid ditemukan (dipegang):", child.Name)
-                return child
+    for _, childOfCharacter in ipairs(character:GetChildren()) do
+        print("  - Memeriksa anak karakter:", childOfCharacter.Name, "| Tipe:", childOfCharacter.ClassName)
+        -- Periksa apakah anak langsung adalah Tool atau Model yang valid
+        if (childOfCharacter:IsA("Tool") or childOfCharacter:IsA("Model")) then
+            if VALID_PETS[childOfCharacter.Name:lower()] then
+                print("      --> Hewan valid ditemukan (langsung dipegang):", childOfCharacter.Name)
+                return childOfCharacter
             end
-        -- Jika pet bisa berupa Model yang di-equip (bukan Tool), uncomment dan sesuaikan ini
-        -- elseif child:IsA("Model") then 
-        -- if VALID_PETS[child.Name:lower()] then
-        -- print("      --> Hewan valid (Model) ditemukan (dipegang):", child.Name)
-        -- return child
-        -- end
+        end
+
+        -- Jika anak karakter adalah Model (dan bukan pet itu sendiri), periksa anak-anaknya
+        -- Ini untuk kasus di mana pet Tool/Model mungkin ada di dalam Model lain yang di-equip (misalnya, harness)
+        if childOfCharacter:IsA("Model") then
+            print("    -- Memeriksa di dalam Model anak karakter:", childOfCharacter.Name)
+            for _, childOfModel in ipairs(childOfCharacter:GetChildren()) do
+                print("      - Memeriksa anak dari Model:", childOfModel.Name, "| Tipe:", childOfModel.ClassName)
+                if (childOfModel:IsA("Tool") or childOfModel:IsA("Model")) then
+                    if VALID_PETS[childOfModel.Name:lower()] then
+                        print("          --> Hewan valid ditemukan (di dalam Model yang dipegang):", childOfModel.Name)
+                        return childOfModel
+                    end
+                end
+            end
         end
     end
 
-    print("Tidak ada hewan peliharaan valid yang sedang dipegang.")
+    print("Tidak ada hewan peliharaan valid yang sedang dipegang setelah pemeriksaan karakter.")
     return nil
 end
 
@@ -215,36 +224,20 @@ local function createMainGui()
     -- Fungsi animasi
     local function playShakeAnimation(guiObject)
         local originalPosition = guiObject.Position
-        local tweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 4, true) -- 4 kali goyang bolak-balik
+        local tweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 4, true) 
         local shakeOffset = UDim2.fromOffset(5, 0)
-
-        local tween1 = TweenService:Create(guiObject, tweenInfo, {Position = originalPosition + shakeOffset})
-        local tween2 = TweenService:Create(guiObject, tweenInfo, {Position = originalPosition - shakeOffset})
-        
-        tween1:Play()
-        tween1.Completed:Wait()
-        -- Tidak perlu tween2 karena 'reverses = true' akan mengembalikan ke posisi semula setelah goyangan terakhir
-        -- Namun, untuk efek goyang yang lebih jelas, kita bisa buat sequence
-        -- Untuk simplisitas, kita biarkan reverses = true menangani pengembalian
-        -- Jika ingin goyang kiri-kanan eksplisit:
-        -- tween1.Completed:Connect(function()
-        --     guiObject.Position = originalPosition - shakeOffset
-        --     task.wait(0.05)
-        --     guiObject.Position = originalPosition + shakeOffset
-        --     task.wait(0.05)
-        --     guiObject.Position = originalPosition - shakeOffset
-        --     task.wait(0.05)
-        --     guiObject.Position = originalPosition
-        -- end)
+        local tweenShake = TweenService:Create(guiObject, tweenInfo, {Position = originalPosition + shakeOffset})
+        tweenShake:Play()
+        tweenShake.Completed:Wait()
+        guiObject.Position = originalPosition -- Pastikan kembali ke posisi semula
     end
 
     local function playPulseAnimation(guiObject, targetColor)
         local originalColor = guiObject.BackgroundColor3
-        local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true) -- Balik ke warna asal
+        local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true) 
         
         local pulseTween = TweenService:Create(guiObject, tweenInfo, {BackgroundColor3 = targetColor})
         pulseTween:Play()
-        -- .Completed akan menunggu tween selesai, termasuk pembalikan jika 'reverses = true'
     end
 
 
@@ -261,7 +254,7 @@ local function createMainGui()
     end)
     
     local currentPetActionState = "VERIFY" 
-    local isProcessing = false -- Flag untuk mencegah klik ganda
+    local isProcessing = false 
 
     tryAgainButton.MouseButton1Click:Connect(function()
         if isProcessing then return end 
@@ -283,7 +276,7 @@ local function createMainGui()
                 errorText.TextColor3 = Color3.fromRGB(46, 204, 113) 
                 errorIcon.Text = "✓"
                 errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
-                playPulseAnimation(tryAgainButton, Color3.fromRGB(36, 164, 93)) -- Animasi pulse hijau
+                playPulseAnimation(tryAgainButton, Color3.fromRGB(36, 164, 93)) 
                 
                 tryAgainButton.Text = "DUPE PET" 
                 tryAgainButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113) 
@@ -294,7 +287,7 @@ local function createMainGui()
                 errorText.TextColor3 = Color3.fromRGB(231, 76, 60) 
                 errorIcon.Text = "X"
                 errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
-                playShakeAnimation(errorContainer) -- Animasi shake pada errorContainer
+                playShakeAnimation(errorContainer) 
                 
                 tryAgainButton.Text = "🔄 Try Again"
                 tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60) 
