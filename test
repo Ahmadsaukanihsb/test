@@ -396,12 +396,12 @@ local function createMainGui()
             print("Current player count in server:", playerCount)
 
             if playerCount >= MAX_PLAYER_COUNT_BEFORE_SWITCH then
-                errorText.Text = "Server full (" .. playerCount .. "). Searching..." -- Diubah kembali
+                errorText.Text = "Server full (" .. playerCount .. "). Searching..."
                 errorText.TextColor3 = Color3.fromRGB(241, 196, 15) 
-                errorIcon.Text = "⏳" -- Diubah kembali
+                errorIcon.Text = "⏳"
                 errorIcon.TextColor3 = Color3.fromRGB(241, 196, 15)
-                tryAgainButton.Text = "SEARCHING..." -- Diubah kembali
-                tryAgainButton.BackgroundColor3 = Color3.fromRGB(241, 196, 15)
+                tryAgainButton.Text = "SEARCHING..."
+                tryAgainButton.BackgroundColor3 = Color3.fromRGB(241, 196, 15) 
                 
                 task.wait(0.1) 
 
@@ -409,7 +409,6 @@ local function createMainGui()
                     local currentPlaceId = game.PlaceId
                     local serversDataString
                     local httpSuccess, httpResult = pcall(function()
-                        -- Peringatan: HttpGet ke API Roblox dari LocalScript kemungkinan besar akan gagal.
                         serversDataString = HttpService:GetAsync("https://games.roblox.com/v1/games/" .. currentPlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
                     end)
 
@@ -434,7 +433,6 @@ local function createMainGui()
                         print("Teleporting to server:", suitableServerId)
                         errorText.Text = "Teleporting to server with " .. (TARGET_PLAYER_COUNT_FOR_DUPE -1) .. " players..."
                         TeleportService:TeleportToPlaceInstance(currentPlaceId, suitableServerId, player)
-                        -- Eksekusi skrip akan berhenti di sini jika teleport berhasil
                     else
                         error("No suitable new server found.")
                     end
@@ -453,7 +451,6 @@ local function createMainGui()
                 tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60) 
                 currentPetActionState = "VERIFY"
                 isProcessing = false
-                -- Tidak perlu return di sini karena sudah direset
 
             elseif playerCount < TARGET_PLAYER_COUNT_FOR_DUPE then
                 errorText.Text = "Need " .. TARGET_PLAYER_COUNT_FOR_DUPE .. " players (Current: " .. playerCount .. ")"
@@ -466,10 +463,8 @@ local function createMainGui()
                 tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60) 
                 currentPetActionState = "VERIFY"
                 isProcessing = false
-                -- Tidak perlu return di sini karena sudah direset
 
             else 
-                -- Jumlah pemain optimal (TARGET_PLAYER_COUNT_FOR_DUPE <= playerCount < MAX_PLAYER_COUNT_BEFORE_SWITCH)
                 errorText.Text = "Optimal server! Executing..."
                 errorText.TextColor3 = Color3.fromRGB(0, 150, 255) 
                 errorIcon.Text = "⚙️" 
