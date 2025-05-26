@@ -16,26 +16,43 @@ local VALID_PETS = {
 local function findHeldValidPet()
     if not player then return nil end
 
+    print("Mencari hewan peliharaan valid...")
+
     -- Cek karakter (apa yang sedang dipegang/dipakai)
     local character = player.Character
     if character then
+        print("Memeriksa karakter:", character.Name)
         for _, child in ipairs(character:GetChildren()) do
-            if (child:IsA("Tool") or child:IsA("Model")) and VALID_PETS[child.Name:lower()] then
-                return child -- Mengembalikan objek hewan peliharaan jika ditemukan
+            if child:IsA("Tool") or child:IsA("Model") then
+                print("  Menemukan di karakter:", child.Name, "| Tipe:", child.ClassName)
+                if VALID_PETS[child.Name:lower()] then
+                    print("    --> Hewan valid ditemukan di karakter:", child.Name)
+                    return child -- Mengembalikan objek hewan peliharaan jika ditemukan
+                end
             end
         end
+    else
+        print("Karakter pemain tidak ditemukan.")
     end
 
     -- Cek backpack (inventaris)
     local backpack = player:FindFirstChild("Backpack")
     if backpack then
+        print("Memeriksa backpack:", backpack.Name)
         for _, child in ipairs(backpack:GetChildren()) do
-            if (child:IsA("Tool") or child:IsA("Model")) and VALID_PETS[child.Name:lower()] then
-                return child -- Mengembalikan objek hewan peliharaan jika ditemukan
+            if child:IsA("Tool") or child:IsA("Model") then
+                print("  Menemukan di backpack:", child.Name, "| Tipe:", child.ClassName)
+                if VALID_PETS[child.Name:lower()] then
+                    print("    --> Hewan valid ditemukan di backpack:", child.Name)
+                    return child -- Mengembalikan objek hewan peliharaan jika ditemukan
+                end
             end
         end
+    else
+        print("Backpack pemain tidak ditemukan.")
     end
     
+    print("Tidak ada hewan peliharaan valid yang ditemukan setelah pemeriksaan.")
     return nil -- Tidak ada hewan peliharaan valid yang ditemukan
 end
 
