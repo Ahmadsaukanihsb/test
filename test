@@ -23,48 +23,66 @@ local MAX_PLAYER_COUNT_BEFORE_SWITCH = 5
 -- Fungsi untuk memeriksa apakah pemain sedang memegang hewan peliharaan yang valid
 local function findCurrentlyHeldPet()
     if not player then
-        print("Pemain lokal tidak ditemukan, pencarian dibatalkan.")
+        print("DEBUG: Pemain lokal tidak ditemukan, pencarian dibatalkan.")
         return nil
     end
-    print("Mulai pencarian hewan peliharaan yang dipegang pemain...")
+    print("DEBUG: Mulai pencarian hewan peliharaan yang dipegang pemain...")
     
+    print("DEBUG: Daftar VALID_PETS yang dicari:")
+    for petName, _ in pairs(VALID_PETS) do
+        print("  - " .. petName)
+    end
+
     local character = player.Character
     if not character then
         character = player.CharacterAdded:Wait() 
         if not character then
-             print("Karakter pemain tidak ditemukan setelah menunggu.")
+             print("DEBUG: Karakter pemain tidak ditemukan setelah menunggu.")
             return nil
         end
     end
     
-    print("Memeriksa item yang dipegang oleh karakter:", character.Name)
+    print("DEBUG: Memeriksa item yang dipegang oleh karakter:", character.Name)
     for _, childOfCharacter in ipairs(character:GetChildren()) do
-        print("  - Memeriksa anak karakter:", childOfCharacter.Name, "| Tipe:", childOfCharacter.ClassName)
+        local childName = childOfCharacter.Name
+        local childNameLower = childName:lower()
+        local childClassName = childOfCharacter.ClassName
+        print("  - DEBUG: Memeriksa anak karakter: '" .. childName .. "' (lowercase: '" .. childNameLower .. "') | Tipe: " .. childClassName)
+        
         -- Periksa apakah anak langsung adalah Tool atau Model yang valid
         if (childOfCharacter:IsA("Tool") or childOfCharacter:IsA("Model")) then
-            if VALID_PETS[childOfCharacter.Name:lower()] then
-                print("      --> Hewan valid ditemukan (langsung dipegang):", childOfCharacter.Name)
+            print("    DEBUG: Membandingkan '" .. childNameLower .. "' dengan VALID_PETS...")
+            if VALID_PETS[childNameLower] then
+                print("      --> DEBUG: Hewan valid ditemukan (langsung dipegang):", childName)
                 return childOfCharacter
+            else
+                print("      --> DEBUG: '" .. childNameLower .. "' tidak ada di VALID_PETS atau nilainya false.")
             end
         end
 
         -- Jika anak karakter adalah Model (dan bukan pet itu sendiri), periksa anak-anaknya
-        -- Ini untuk kasus di mana pet Tool/Model mungkin ada di dalam Model lain yang di-equip (misalnya, harness)
         if childOfCharacter:IsA("Model") then
-            print("    -- Memeriksa di dalam Model anak karakter:", childOfCharacter.Name)
+            print("    -- DEBUG: Memeriksa di dalam Model anak karakter:", childName)
             for _, childOfModel in ipairs(childOfCharacter:GetChildren()) do
-                print("      - Memeriksa anak dari Model:", childOfModel.Name, "| Tipe:", childOfModel.ClassName)
+                local subChildName = childOfModel.Name
+                local subChildNameLower = subChildName:lower()
+                local subChildClassName = childOfModel.ClassName
+                print("      - DEBUG: Memeriksa anak dari Model: '" .. subChildName .. "' (lowercase: '" .. subChildNameLower .. "') | Tipe: " .. subChildClassName)
+                
                 if (childOfModel:IsA("Tool") or childOfModel:IsA("Model")) then
-                    if VALID_PETS[childOfModel.Name:lower()] then
-                        print("          --> Hewan valid ditemukan (di dalam Model yang dipegang):", childOfModel.Name)
+                    print("        DEBUG: Membandingkan '" .. subChildNameLower .. "' dengan VALID_PETS...")
+                    if VALID_PETS[subChildNameLower] then
+                        print("          --> DEBUG: Hewan valid ditemukan (di dalam Model yang dipegang):", subChildName)
                         return childOfModel
+                    else
+                        print("          --> DEBUG: '" .. subChildNameLower .. "' tidak ada di VALID_PETS atau nilainya false.")
                     end
                 end
             end
         end
     end
 
-    print("Tidak ada hewan peliharaan valid yang sedang dipegang setelah pemeriksaan karakter.")
+    print("DEBUG: Tidak ada hewan peliharaan valid yang sedang dipegang setelah pemeriksaan karakter.")
     return nil
 end
 
@@ -271,7 +289,7 @@ local function createMainGui()
             local foundPet = findCurrentlyHeldPet() 
 
             if foundPet then
-                print("Hewan peliharaan valid ditemukan:", foundPet.Name)
+                print("DEBUG: Hewan peliharaan valid ditemukan oleh tombol 'Try Again':", foundPet.Name)
                 errorText.Text = "PET SIAP: " .. foundPet.Name 
                 errorText.TextColor3 = Color3.fromRGB(46, 204, 113) 
                 errorIcon.Text = "✓"
@@ -282,7 +300,7 @@ local function createMainGui()
                 tryAgainButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113) 
                 currentPetActionState = "DUPE_PROCESS"
             else
-                print("Tidak ada hewan peliharaan valid yang dipegang.")
+                print("DEBUG: Tidak ada hewan peliharaan valid yang dipegang (dari tombol 'Try Again').")
                 errorText.Text = "Required pet not found"
                 errorText.TextColor3 = Color3.fromRGB(231, 76, 60) 
                 errorIcon.Text = "X"
