@@ -21,7 +21,7 @@ local function createMainGui()
     -- Membuat Frame Utama
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 320, 0, 230) -- Perkiraan ukuran
+    mainFrame.Size = UDim2.new(0, 320, 0, 250) -- Tinggi frame diperbesar menjadi 250
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     mainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
@@ -115,7 +115,7 @@ local function createMainGui()
     local instructionsLabel = Instance.new("TextLabel")
     instructionsLabel.Name = "InstructionsLabel"
     instructionsLabel.Size = UDim2.new(0.85, 0, 0, 60)
-    instructionsLabel.Position = UDim2.new(0.5, 0, 0, 100)
+    instructionsLabel.Position = UDim2.new(0.5, 0, 0, 100) -- Posisi Y tetap
     instructionsLabel.AnchorPoint = Vector2.new(0.5, 0)
     instructionsLabel.BackgroundTransparency = 1
     instructionsLabel.Font = Enum.Font.Gotham
@@ -132,7 +132,7 @@ local function createMainGui()
     local tryAgainButton = Instance.new("TextButton")
     tryAgainButton.Name = "TryAgainButton"
     tryAgainButton.Size = UDim2.new(0.85, 0, 0, 40)
-    tryAgainButton.Position = UDim2.new(0.5, 0, 1, -50)
+    tryAgainButton.Position = UDim2.new(0.5, 0, 1, -40) -- Penyesuaian posisi Y offset menjadi -40
     tryAgainButton.AnchorPoint = Vector2.new(0.5, 1)
     tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
     tryAgainButton.Font = Enum.Font.GothamBold
