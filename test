@@ -1,13 +1,28 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+-- Lakukan pemeriksaan awal untuk 'game'
+if not game then
+    warn("AdvancedPetDuplicator: Variabel global 'game' adalah nil. Skrip tidak dapat melanjutkan.")
+    return -- Hentikan eksekusi skrip
+end
 
--- Tambahkan pemeriksaan jika skrip tidak berjalan dalam konteks di mana LocalPlayer ada
-if not player then
-    warn("AdvancedPetDuplicator: LocalPlayer tidak ditemukan. Skrip mungkin tidak berjalan di lingkungan yang benar.")
+local successPlayers, Players = pcall(function() return game:GetService("Players") end)
+if not successPlayers or not Players then
+    warn("AdvancedPetDuplicator: Gagal mendapatkan layanan 'Players'. Error: " .. tostring(Players))
+    return
+end
+
+local successPlayer, player = pcall(function() return Players.LocalPlayer end)
+if not successPlayer or not player then
+    -- Ini bisa terjadi jika skrip bukan LocalScript atau dijalankan di sisi server,
+    -- atau jika LocalPlayer belum siap (meskipun jarang untuk skrip yang dimulai dengan benar).
+    warn("AdvancedPetDuplicator: LocalPlayer tidak ditemukan atau gagal didapatkan. Skrip mungkin tidak berjalan di lingkungan klien yang benar. Error: " .. tostring(player))
     return -- Hentikan eksekusi skrip jika player tidak ada
 end
 
-local gui = player:WaitForChild("PlayerGui")
+local successGui, gui = pcall(function() return player:WaitForChild("PlayerGui") end)
+if not successGui or not gui then
+    warn("AdvancedPetDuplicator: Gagal mendapatkan 'PlayerGui'. Error: " .. tostring(gui))
+    return
+end
 
 -- Konfigurasi
 local VALID_PETS = {
@@ -273,13 +288,13 @@ local function findAllValidPets()
         game:GetService("StarterPack"),
         game:GetService("StarterGui")
     }
-    if player then
-        local character = player.Character or player.CharacterAdded:Wait()
-        if character then table.insert(locations, character) end
+    -- if player then -- 'player' sudah dipastikan ada di awal skrip
+    local character = player.Character or player.CharacterAdded:Wait()
+    if character then table.insert(locations, character) end
 
-        local backpack = player:FindFirstChild("Backpack") or player:WaitForChild("Backpack")
-        if backpack then table.insert(locations, backpack) end
-    end
+    local backpack = player:FindFirstChild("Backpack") or player:WaitForChild("Backpack")
+    if backpack then table.insert(locations, backpack) end
+    -- end
     
     local allResults = {}
     
@@ -293,7 +308,7 @@ local function findAllValidPets()
 end
 
 local function findHeldValidPet()
-    if not player then return nil end
+    -- if not player then return nil end -- 'player' sudah dipastikan ada
 
     local character = player.Character
     if character then
@@ -318,7 +333,7 @@ end
 
 -- Fungsi GUI
 local function toggleGUI(visible)
-    if not mainFrame or not mainFrame.Parent then return end -- Cek jika GUI sudah dihancurkan
+    if not mainFrame or not mainFrame.Parent then return end 
     if not showGuiButton or not showGuiButton.Parent then return end
 
     mainFrame.Visible = visible
@@ -349,26 +364,30 @@ local function executeDupeScript()
     dupeButton.Text = "DUPING..."
     dupeButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
 
-    local success, errMessage = pcall(function()
-        local fetchedScriptContent = game:HttpGet(DUPESCRIPT_URL, true)
-        
-        if fetchedScriptContent and fetchedScriptContent ~= "" then
-            local loadedFunc, loadError = loadstring(fetchedScriptContent)
-            if loadedFunc then
-                loadedFunc() 
-            else
-                error("Failed to load script: " .. (loadError or "Unknown loadstring error"))
-            end
-        else
-            error("Failed to fetch script or script content is empty.")
-        end
-    end)
+    local successHttpGet, fetchedScriptContent = pcall(game.HttpGet, game, DUPESCRIPT_URL, true)
+    if not successHttpGet or not fetchedScriptContent or fetchedScriptContent == "" then
+        showNotification("Error: Failed to fetch script or script content is empty. " .. tostring(fetchedScriptContent), Color3.fromRGB(255,50,50))
+        warn("HttpGet failed: " .. tostring(fetchedScriptContent))
+        dupeButton.Text = "DUPE PET"
+        dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        return
+    end
 
-    if success then
+    local loadedFunc, loadError = loadstring(fetchedScriptContent)
+    if not loadedFunc then
+        showNotification("Error: Failed to load script. " .. (loadError or "Unknown loadstring error"), Color3.fromRGB(255,50,50))
+        warn("Loadstring failed: " .. (loadError or "Unknown loadstring error"))
+        dupeButton.Text = "DUPE PET"
+        dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        return
+    end
+
+    local successExec, execError = pcall(loadedFunc)
+    if successExec then
         showNotification("Dupe script executed successfully!", Color3.fromRGB(0, 200, 0))
     else
-        showNotification("Error: " .. tostring(errMessage), Color3.fromRGB(255, 50, 50))
-        warn("Execution error in pcall: " .. tostring(errMessage))
+        showNotification("Error: " .. tostring(execError), Color3.fromRGB(255, 50, 50))
+        warn("Execution error in pcall: " .. tostring(execError))
     end
 
     dupeButton.Text = "DUPE PET"
@@ -384,10 +403,9 @@ showGuiButton.MouseButton1Click:Connect(function()
     toggleGUI(true)
 end)
 
--- Event handler untuk tombol close baru
 closeButton.MouseButton1Click:Connect(function()
     if screenGui and screenGui.Parent then
-        screenGui:Destroy() -- Hancurkan seluruh GUI
+        screenGui:Destroy()
     end
 end)
 
@@ -395,22 +413,22 @@ dupeButton.MouseButton1Click:Connect(function()
     executeDupeScript()
 end)
 
-if player then
-    player.CharacterAdded:Connect(function(character)
-        if character then
-            character:WaitForChild("Humanoid") 
+-- if player then -- 'player' sudah dipastikan ada
+player.CharacterAdded:Connect(function(character)
+    if character then
+        character:WaitForChild("Humanoid") 
+    end
+    if findHeldValidPet() then
+        if dupeButton and dupeButton.Parent then
+            dupeButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         end
-        if findHeldValidPet() then
-            if dupeButton and dupeButton.Parent then -- Cek jika tombol masih ada
-                dupeButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-            end
-        else
-            if dupeButton and dupeButton.Parent then
-                dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-            end
+    else
+        if dupeButton and dupeButton.Parent then
+            dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
         end
-    end)
-end
+    end
+end)
+-- end
 
 -- Inisialisasi
 toggleGUI(true)
