@@ -21,7 +21,7 @@ local function createMainGui()
     -- Membuat Frame Utama
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 320, 0, 250) -- Tinggi frame diperbesar menjadi 250
+    mainFrame.Size = UDim2.new(0, 320, 0, 270) -- Tinggi frame diperbesar menjadi 270
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     mainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
@@ -114,12 +114,12 @@ local function createMainGui()
     -- Instruksi
     local instructionsLabel = Instance.new("TextLabel")
     instructionsLabel.Name = "InstructionsLabel"
-    instructionsLabel.Size = UDim2.new(0.85, 0, 0, 60)
+    instructionsLabel.Size = UDim2.new(0.85, 0, 0, 80) -- Tinggi instruksi diperbesar menjadi 80
     instructionsLabel.Position = UDim2.new(0.5, 0, 0, 100) -- Posisi Y tetap
     instructionsLabel.AnchorPoint = Vector2.new(0.5, 0)
     instructionsLabel.BackgroundTransparency = 1
     instructionsLabel.Font = Enum.Font.Gotham
-    instructionsLabel.Text = "Hold one of these pets:\n- Red Fox  - Dragonfly\n- Raccoon  - Praying Mantis\nThen click to start duplicating."
+    instructionsLabel.Text = "Hold one of these pets:\n- Red Fox  - Dragonfly\n- Raccoon  - Praying Mantis\n- Deer\nThen click to start duplicating." -- Menambahkan Deer
     instructionsLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
     instructionsLabel.TextSize = 14
     instructionsLabel.TextWrapped = true
@@ -132,7 +132,7 @@ local function createMainGui()
     local tryAgainButton = Instance.new("TextButton")
     tryAgainButton.Name = "TryAgainButton"
     tryAgainButton.Size = UDim2.new(0.85, 0, 0, 40)
-    tryAgainButton.Position = UDim2.new(0.5, 0, 1, -80) -- Penyesuaian posisi Y offset menjadi -40
+    tryAgainButton.Position = UDim2.new(0.5, 0, 1, -40) -- Posisi Y offset tetap -40 (relatif terhadap bawah frame)
     tryAgainButton.AnchorPoint = Vector2.new(0.5, 1)
     tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
     tryAgainButton.Font = Enum.Font.GothamBold
