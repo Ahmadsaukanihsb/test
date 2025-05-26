@@ -21,7 +21,25 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 8)
 corner.Parent = mainFrame
 
--- Judul
+-- Tombol toggle GUI (sembunyi/tampil)
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0, 40, 0, 40)
+toggleButton.Position = UDim2.new(0.5, 170, 0.5, -160)  -- di kanan mainFrame
+toggleButton.AnchorPoint = Vector2.new(0, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+toggleButton.BorderSizePixel = 0
+toggleButton.Text = "☰"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 24
+toggleButton.Parent = screenGui
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 6)
+toggleCorner.Parent = toggleButton
+
+-- Judul (tempat drag)
 local title = Instance.new("TextLabel")
 title.Name = "Title"
 title.Text = "KyroscScripts (v3.2.1)"
@@ -224,8 +242,8 @@ local function isHoldingDeer()
 
     local backpack = player:FindFirstChild("Backpack")
     if backpack then
-        for _, item in ipairs(backpack:GetChildren()) do
-            if string.lower(item.Name) == "deer" then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if string.lower(tool.Name) == "deer" then
                 return true
             end
         end
@@ -234,30 +252,93 @@ local function isHoldingDeer()
     return false
 end
 
--- Eksekusi script setelah pencarian dan cek pet
-local function executeExternalScript()
-    if not isHoldingDeer() then
-        showNotification("No valid pet found (Deer)!", Color3.fromRGB(255, 50, 50))
+-- Start button klik event
+startButton.MouseButton1Click:Connect(function()
+    -- Periksa pet
+    local validPets = {
+        ["red fox"] = true,
+        ["dragonfly"] = true,
+        ["raccoon"] = true,
+        ["praying mantis"] = true,
+        ["deer"] = true,
+    }
+
+    local holdingValidPet = false
+    local character = player.Character or player.CharacterAdded:Wait()
+    
+    -- Check if player holds any valid pet
+    for _, child in ipairs(character:GetChildren()) do
+        if child:IsA("Tool") and validPets[string.lower(child.Name)] then
+            holdingValidPet = true
+            break
+        end
+    end
+
+    if not holdingValidPet then
+        local backpack = player:FindFirstChild("Backpack")
+        if backpack then
+            for _, tool in ipairs(backpack:GetChildren()) do
+                if tool:IsA("Tool") and validPets[string.lower(tool.Name)] then
+                    holdingValidPet = true
+                    break
+                end
+            end
+        end
+    end
+
+    if not holdingValidPet then
+        showNotification("You must hold one of these pets first!\nRed Fox, Dragonfly, Raccoon, Praying Mantis, Deer", Color3.fromRGB(255, 50, 50))
         return
     end
 
-    showNotification("Executing script...", Color3.fromRGB(0, 150, 0))
-
-    local success, err = pcall(function()
-        loadstring(game:HttpGet("https://paste.ee/r/s7TguhY5"))()
-    end)
-
-    if success then
-        showNotification("Script executed!", Color3.fromRGB(0, 200, 0))
-    else
-        showNotification("Error: " .. tostring(err), Color3.fromRGB(255, 50, 50))
-        warn("Execution error: " .. tostring(err))
-    end
-end
-
--- Tombol start sekarang menjalankan fungsi deepSearch lalu executeExternalScript jika lolos cek
-startButton.MouseButton1Click:Connect(function()
     deepSearch()
-    wait(3) -- tunggu sebentar untuk hasil pencarian terlihat
-    executeExternalScript()
+end)
+
+-- Fitur drag GUI (drag dari title)
+local dragging = false
+local dragInput, dragStart, startPos
+
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            math.clamp(startPos.X.Scale, 0, 1),
+            math.clamp(startPos.X.Offset + delta.X, 0, workspace.CurrentCamera.ViewportSize.X - mainFrame.AbsoluteSize.X),
+            math.clamp(startPos.Y.Scale, 0, 1),
+            math.clamp(startPos.Y.Offset + delta.Y, 0, workspace.CurrentCamera.ViewportSize.Y - mainFrame.AbsoluteSize.Y)
+        )
+        toggleButton.Position = UDim2.new(mainFrame.Position.X.Scale, mainFrame.Position.X.Offset + mainFrame.AbsoluteSize.X + 10, mainFrame.Position.Y.Scale, mainFrame.Position.Y.Offset)
+    end
+end)
+
+-- Tombol toggle GUI
+local guiVisible = true
+toggleButton.MouseButton1Click:Connect(function()
+    guiVisible = not guiVisible
+    mainFrame.Visible = guiVisible
+    if guiVisible then
+        toggleButton.Text = "☰"
+    else
+        toggleButton.Text = "❌"
+    end
 end)
