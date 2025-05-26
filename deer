@@ -1,0 +1,204 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local gui = player:WaitForChild("PlayerGui")
+
+-- GUI Utama
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AdvancedDeerFinderGUI"
+screenGui.Parent = gui
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 350, 0, 250)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -125)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = mainFrame
+
+-- Judul
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Text = "Advanced Deer Finder"
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 10)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.Parent = mainFrame
+
+-- Area Hasil Pencarian
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Name = "ResultsFrame"
+scrollFrame.Size = UDim2.new(0.9, 0, 0, 150)
+scrollFrame.Position = UDim2.new(0.05, 0, 0, 40)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 5
+scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollFrame.Parent = mainFrame
+
+local resultsLayout = Instance.new("UIListLayout")
+resultsLayout.Padding = UDim.new(0, 5)
+resultsLayout.Parent = scrollFrame
+
+-- Tombol Pencarian
+local searchButton = Instance.new("TextButton")
+searchButton.Name = "SearchButton"
+searchButton.Text = "Deep Search for Deer"
+searchButton.Size = UDim2.new(0.9, 0, 0, 40)
+searchButton.Position = UDim2.new(0.05, 0, 0, 200)
+searchButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+searchButton.BorderSizePixel = 0
+searchButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+searchButton.Font = Enum.Font.GothamBold
+searchButton.TextSize = 14
+searchButton.Parent = mainFrame
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 6)
+buttonCorner.Parent = searchButton
+
+-- Fungsi rekursif untuk mencari di semua subfolder
+local function deepFindDeer(parent, path)
+    local results = {}
+    
+    for _, child in ipairs(parent:GetChildren()) do
+        -- Cek jika ini adalah Deer
+        if child:IsA("Tool") and child.Name:lower():find("deer") then
+            table.insert(results, {
+                object = child,
+                path = path..child.Name
+            })
+        end
+        
+        -- Jika ini adalah folder, cari di dalamnya
+        if child:IsA("Folder") or child:IsA("Model") then
+            local subResults = deepFindDeer(child, path..child.Name.." > ")
+            for _, res in ipairs(subResults) do
+                table.insert(results, res)
+            end
+        end
+    end
+    
+    return results
+end
+
+-- Fungsi untuk membersihkan hasil sebelumnya
+local function clearResults()
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if not child:IsA("UIListLayout") then
+            child:Destroy()
+        end
+    end
+end
+
+-- Fungsi untuk menampilkan hasil
+local function displayResults(results)
+    clearResults()
+    
+    if #results == 0 then
+        local noResult = Instance.new("TextLabel")
+        noResult.Name = "NoResult"
+        noResult.Text = "No Deer found anywhere"
+        noResult.Size = UDim2.new(1, 0, 0, 20)
+        noResult.BackgroundTransparency = 1
+        noResult.TextColor3 = Color3.fromRGB(255, 50, 50)
+        noResult.Font = Enum.Font.Gotham
+        noResult.TextSize = 14
+        noResult.Parent = scrollFrame
+        return
+    end
+    
+    for _, result in ipairs(results) do
+        local resultFrame = Instance.new("Frame")
+        resultFrame.Name = "ResultFrame"
+        resultFrame.Size = UDim2.new(1, 0, 0, 40)
+        resultFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        resultFrame.BackgroundTransparency = 0.5
+        resultFrame.Parent = scrollFrame
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 4)
+        corner.Parent = resultFrame
+        
+        local pathLabel = Instance.new("TextLabel")
+        pathLabel.Name = "PathLabel"
+        pathLabel.Text = result.path
+        pathLabel.Size = UDim2.new(0.9, 0, 0, 20)
+        pathLabel.Position = UDim2.new(0.05, 0, 0, 0)
+        pathLabel.BackgroundTransparency = 1
+        pathLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        pathLabel.Font = Enum.Font.Gotham
+        pathLabel.TextSize = 12
+        pathLabel.TextXAlignment = Enum.TextXAlignment.Left
+        pathLabel.Parent = resultFrame
+        
+        local typeLabel = Instance.new("TextLabel")
+        typeLabel.Name = "TypeLabel"
+        typeLabel.Text = "Type: "..result.object.ClassName
+        typeLabel.Size = UDim2.new(0.9, 0, 0, 15)
+        typeLabel.Position = UDim2.new(0.05, 0, 0, 20)
+        typeLabel.BackgroundTransparency = 1
+        typeLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        typeLabel.Font = Enum.Font.Gotham
+        typeLabel.TextSize = 10
+        typeLabel.TextXAlignment = Enum.TextXAlignment.Left
+        typeLabel.Parent = resultFrame
+    end
+end
+
+-- Lokasi-lokasi penting untuk dicari
+local importantLocations = {
+    game:GetService("Workspace"),
+    game:GetService("ReplicatedStorage"),
+    game:GetService("ServerStorage"),
+    game:GetService("StarterPack"),
+    game:GetService("StarterGui"),
+    player.Character or player:WaitForChild("Character"),
+    player:FindFirstChild("Backpack") or player:WaitForChild("Backpack")
+}
+
+-- Fungsi pencarian utama
+local function deepSearch()
+    searchButton.Text = "Searching..."
+    searchButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+    
+    local allResults = {}
+    
+    -- Cari di semua lokasi penting
+    for _, location in ipairs(importantLocations) do
+        if location then
+            local results = deepFindDeer(location, location.Name.." > ")
+            for _, res in ipairs(results) do
+                table.insert(allResults, res)
+            end
+        end
+    end
+    
+    displayResults(allResults)
+    searchButton.Text = "Search Complete"
+    searchButton.BackgroundColor3 = #results > 0 and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+    
+    wait(2)
+    searchButton.Text = "Deep Search for Deer"
+    searchButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+end
+
+-- Event klik tombol
+searchButton.MouseButton1Click:Connect(deepSearch)
+
+-- Pencarian otomatis saat karakter berubah
+player.CharacterAdded:Connect(function()
+    wait(1) -- Beri waktu untuk load item
+    deepSearch()
+end)
+
+-- Pencarian awal
+deepSearch()
