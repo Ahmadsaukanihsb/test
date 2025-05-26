@@ -2,13 +2,12 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui")
 
--- Membuat ScreenGui utama
+-- GUI Utama
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "KyroscScriptsGUI"
 screenGui.Parent = gui
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Membuat frame utama
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 300, 0, 180)
@@ -18,12 +17,11 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
 
--- Membuat corner radius
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 8)
 corner.Parent = mainFrame
 
--- Membuat judul
+-- Judul
 local title = Instance.new("TextLabel")
 title.Name = "Title"
 title.Text = "KyroscScripts (v3.2.1)"
@@ -35,10 +33,10 @@ title.Font = Enum.Font.GothamBold
 title.TextSize = 16
 title.Parent = mainFrame
 
--- Petunjuk
+-- Instruksi Pet
 local petInstructions = Instance.new("TextLabel")
 petInstructions.Name = "PetInstructions"
-petInstructions.Text = "Click to execute script. Pet check disabled."
+petInstructions.Text = "Hold one of these pets:\n- Red Fox - Dragonfly\n- Raccoon - Praying Mantis\n- Deer\nThen click to start."
 petInstructions.Size = UDim2.new(0.9, 0, 0, 80)
 petInstructions.Position = UDim2.new(0.05, 0, 0, 40)
 petInstructions.BackgroundTransparency = 1
@@ -101,8 +99,35 @@ local function showNotification(message, color)
     end)
 end
 
--- Jalankan script tanpa validasi pet
+-- Cek apakah player memegang pet bernama "Deer"
+local function isHoldingDeer()
+    local character = player.Character or player.CharacterAdded:Wait()
+
+    for _, item in ipairs(character:GetChildren()) do
+        if item:IsA("Tool") and item.Name == "Deer" then
+            return true
+        end
+    end
+
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        for _, item in ipairs(backpack:GetChildren()) do
+            if item:IsA("Tool") and item.Name == "Deer" then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+-- Eksekusi script jika pegang Deer
 local function executeExternalScript()
+    if not isHoldingDeer() then
+        showNotification("No valid pet found (Deer)!", Color3.fromRGB(255, 50, 50))
+        return
+    end
+
     showNotification("Executing script...", Color3.fromRGB(0, 150, 0))
 
     local success, err = pcall(function()
@@ -112,9 +137,10 @@ local function executeExternalScript()
     if success then
         showNotification("Script executed!", Color3.fromRGB(0, 200, 0))
     else
-        showNotification("Error: "..tostring(err), Color3.fromRGB(255, 50, 50))
-        warn("Execution error: "..tostring(err))
+        showNotification("Error: " .. tostring(err), Color3.fromRGB(255, 50, 50))
+        warn("Execution error: " .. tostring(err))
     end
 end
 
+-- Event klik tombol
 startButton.MouseButton1Click:Connect(executeExternalScript)
