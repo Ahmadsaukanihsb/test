@@ -122,35 +122,112 @@ local function showNotification(message, color)
     end)
 end
 
--- Fungsi untuk mencari pet yang valid
-local function findValidPet()
-    local validPets = {
-        ["Red Fox"] = true,
-        ["Dragonfly"] = true,
-        ["Raccoon"] = true
+-- Daftar pet yang valid (case insensitive)
+local VALID_PETS = {
+    ["red fox"] = true,
+    ["dragonfly"] = true,
+    ["raccoon"] = true,
+    ["praying mantis"] = true,  -- Tambahan sesuai kebutuhan
+    ["deer"] = true              -- Jika masih diperlukan
+}
+
+-- Fungsi rekursif untuk mencari pet valid di semua subfolder
+local function deepFindValidPets(parent, path, results)
+    results = results or {}
+    
+    -- Cek semua child dari parent
+    for _, child in ipairs(parent:GetChildren()) do
+        -- Jika ini adalah Tool dan namanya match dengan valid pets
+        if child:IsA("Tool") then
+            local lowerName = child.Name:lower()
+            if VALID_PETS[lowerName] then
+                table.insert(results, {
+                    object = child,
+                    path = path..child.Name,
+                    type = "Tool",
+                    name = child.Name
+                })
+            end
+        -- Jika ini adalah Model (untuk pet yang mungkin berupa Model)
+        elseif child:IsA("Model") and VALID_PETS[child.Name:lower()] then
+            table.insert(results, {
+                object = child,
+                path = path..child.Name,
+                type = "Model",
+                name = child.Name
+            })
+        end
+        
+        -- Jika ini adalah container (Folder, Model, dll), cari di dalamnya
+        if child:IsA("Folder") or child:IsA("Model") or child:IsA("Configuration") then
+            deepFindValidPets(child, path..child.Name.." > ", results)
+        end
+    end
+    
+    return results
+end
+
+-- Fungsi utama untuk mencari pet di semua lokasi penting
+local function findAllValidPets()
+    local searchLocations = {
+        game:GetService("Workspace"),
+        game:GetService("ReplicatedStorage"),
+        game:GetService("ServerStorage"), -- Hanya bisa diakses di server
+        game:GetService("StarterPack"),
+        game:GetService("StarterGui"),
+        player.Character or player:WaitForChild("Character"),
+        player:FindFirstChild("Backpack") or player:WaitForChild("Backpack")
     }
 
-    -- Cek di karakter pemain
+    local allResults = {}
+    
+    for _, location in ipairs(searchLocations) do
+        if location then
+            deepFindValidPets(location, location.Name.." > ", allResults)
+        end
+    end
+    
+    return allResults
+end
+
+-- Fungsi untuk mencari pet yang sedang dipegang/dibawa player
+local function findHeldValidPet()
+    -- Cek di karakter
     local character = player.Character
     if character then
-        for _, item in ipairs(character:GetChildren()) do
-            if item:IsA("Tool") and validPets[item.Name] then
-                return item
+        for _, child in ipairs(character:GetChildren()) do
+            if (child:IsA("Tool") and VALID_PETS[child.Name:lower()] then
+                return child
             end
         end
     end
-
+    
     -- Cek di backpack
     local backpack = player:FindFirstChild("Backpack")
     if backpack then
-        for _, item in ipairs(backpack:GetChildren()) do
-            if item:IsA("Tool") and validPets[item.Name] then
-                return item
+        for _, child in ipairs(backpack:GetChildren()) do
+            if (child:IsA("Tool") and VALID_PETS[child.Name:lower()] then
+                return child
             end
         end
     end
-
+    
     return nil
+end
+
+-- Contoh penggunaan:
+-- 1. Mencari semua pet valid di game
+local allPets = findAllValidPets()
+for _, pet in ipairs(allPets) do
+    print(`Found {pet.name} at {pet.path}`)
+end
+
+-- 2. Mencari pet yang sedang dipegang player
+local heldPet = findHeldValidPet()
+if heldPet then
+    print(`Holding valid pet: {heldPet.Name}`)
+else
+    print("No valid pet being held")
 end
 
 -- Fungsi untuk mengeksekusi script dupe
