@@ -103,16 +103,20 @@ end
 local function isHoldingDeer()
     local character = player.Character or player.CharacterAdded:Wait()
 
+    -- Cek semua item di karakter
     for _, item in ipairs(character:GetChildren()) do
-        if item:IsA("Tool") and item.Name == "Deer" then
+        print("Character has:", item.Name, item.ClassName)
+        if string.lower(item.Name) == "deer" then
             return true
         end
     end
 
+    -- Cek semua item di backpack
     local backpack = player:FindFirstChild("Backpack")
     if backpack then
         for _, item in ipairs(backpack:GetChildren()) do
-            if item:IsA("Tool") and item.Name == "Deer" then
+            print("Backpack has:", item.Name, item.ClassName)
+            if string.lower(item.Name) == "deer" then
                 return true
             end
         end
@@ -120,6 +124,7 @@ local function isHoldingDeer()
 
     return false
 end
+
 
 -- Eksekusi script jika pegang Deer
 local function executeExternalScript()
