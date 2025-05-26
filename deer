@@ -155,8 +155,8 @@ local function createMainGui()
     errorIcon.Size = UDim2.new(0, 20, 1, 0)
     errorIcon.BackgroundTransparency = 1
     errorIcon.Font = Enum.Font.GothamBold
-    errorIcon.Text = "X"
-    errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
+    errorIcon.Text = "X" -- Default Icon
+    errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60) -- Default Color
     errorIcon.TextSize = 20
     errorIcon.TextXAlignment = Enum.TextXAlignment.Center
     errorIcon.TextYAlignment = Enum.TextYAlignment.Center
@@ -168,8 +168,8 @@ local function createMainGui()
     errorText.Position = UDim2.new(0, 25, 0, 0)
     errorText.BackgroundTransparency = 1
     errorText.Font = Enum.Font.GothamSemibold
-    errorText.Text = "Required pet not found"
-    errorText.TextColor3 = Color3.fromRGB(231, 76, 60)
+    errorText.Text = "Required pet not found" -- Default Text
+    errorText.TextColor3 = Color3.fromRGB(231, 76, 60) -- Default Color
     errorText.TextSize = 16
     errorText.TextXAlignment = Enum.TextXAlignment.Left
     errorText.TextYAlignment = Enum.TextYAlignment.Center
@@ -196,9 +196,9 @@ local function createMainGui()
     tryAgainButton.Size = UDim2.new(0.85, 0, 0, 40)
     tryAgainButton.Position = UDim2.new(0.5, 0, 1, -40)
     tryAgainButton.AnchorPoint = Vector2.new(0.5, 1)
-    tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+    tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60) -- Default Color
     tryAgainButton.Font = Enum.Font.GothamBold
-    tryAgainButton.Text = "🔄 Try Again"
+    tryAgainButton.Text = "🔄 Try Again" -- Default Text
     tryAgainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     tryAgainButton.TextSize = 16
     tryAgainButton.Parent = mainFrame
@@ -242,7 +242,7 @@ local function createMainGui()
     local currentPetActionState = "VERIFY" -- Status awal tombol: "VERIFY", "DUPE_PROCESS"
 
     tryAgainButton.MouseButton1Click:Connect(function()
-        if tryAgainButton.Active == false then return end -- Mencegah klik ganda saat proses
+        if tryAgainButton.Active == false then return end 
 
         if currentPetActionState == "VERIFY" then
             errorIcon.Text = "⏳" 
@@ -256,12 +256,13 @@ local function createMainGui()
 
             if foundPet then
                 print("Hewan peliharaan valid ditemukan:", foundPet.Name)
-                errorText.Text = "Pet '" .. foundPet.Name .. "' found! Ready."
+                -- Mengubah teks status menjadi "DUPE PET" atau yang lebih deskriptif
+                errorText.Text = "PET SIAP: " .. foundPet.Name 
                 errorText.TextColor3 = Color3.fromRGB(46, 204, 113) 
                 errorIcon.Text = "✓"
                 errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
                 
-                tryAgainButton.Text = "DUPE PET"
+                tryAgainButton.Text = "DUPE PET" -- Mengubah teks tombol
                 tryAgainButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113) 
                 currentPetActionState = "DUPE_PROCESS"
             else
@@ -280,7 +281,7 @@ local function createMainGui()
             print("Jumlah pemain di server saat ini:", playerCount)
 
             if playerCount >= MAX_PLAYER_COUNT_BEFORE_SWITCH then
-                errorText.Text = "Server penuh (" .. playerCount .. " pemain). Mencari server baru..."
+                errorText.Text = "Server penuh (" .. playerCount .. "). Mencari..."
                 errorText.TextColor3 = Color3.fromRGB(241, 196, 15) 
                 errorIcon.Text = "⏳"
                 errorIcon.TextColor3 = Color3.fromRGB(241, 196, 15)
@@ -294,12 +295,11 @@ local function createMainGui()
                     local currentPlaceId = game.PlaceId
                     local serversDataString
                     local httpSuccess, httpResult = pcall(function()
-                        -- Peringatan: HttpGet ke API Roblox dari LocalScript kemungkinan besar akan gagal.
                         serversDataString = HttpService:GetAsync("https://games.roblox.com/v1/games/" .. currentPlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
                     end)
 
                     if not httpSuccess or not serversDataString then
-                        error("Gagal mengambil daftar server: " .. tostring(httpResult))
+                        error("Gagal ambil daftar server: " .. tostring(httpResult))
                     end
 
                     local servers = HttpService:JSONDecode(serversDataString)
@@ -307,10 +307,9 @@ local function createMainGui()
 
                     if servers and servers.data then
                         for _, server in ipairs(servers.data) do
-                            -- Cari server dengan TARGET_PLAYER_COUNT - 1 pemain (agar setelah join jadi TARGET_PLAYER_COUNT)
                             if server.playing == (TARGET_PLAYER_COUNT_FOR_DUPE - 1) and server.id ~= game.JobId then
                                 suitableServerId = server.id
-                                print("Menemukan server yang cocok:", suitableServerId, "dengan", server.playing, "pemain.")
+                                print("Menemukan server cocok:", suitableServerId, "dgn", server.playing, "pemain.")
                                 break
                             end
                         end
@@ -318,17 +317,16 @@ local function createMainGui()
                     
                     if suitableServerId then
                         print("Teleport ke server:", suitableServerId)
-                        errorText.Text = "Teleport ke server dengan " .. (TARGET_PLAYER_COUNT_FOR_DUPE -1) .. " pemain..."
+                        errorText.Text = "Teleport ke server " .. (TARGET_PLAYER_COUNT_FOR_DUPE -1) .. " pemain..."
                         TeleportService:TeleportToPlaceInstance(currentPlaceId, suitableServerId, player)
-                        -- Eksekusi skrip akan berhenti di sini jika teleport berhasil
                     else
-                        error("Tidak ada server baru yang cocok ditemukan.")
+                        error("Tidak ada server baru yang cocok.")
                     end
                 end)
 
                 if not successTeleport then
                     print("Error pencarian/teleport server:", teleportError)
-                    errorText.Text = "Gagal mencari/join server: " .. tostring(teleportError):sub(1,50) -- Batasi panjang pesan error
+                    errorText.Text = "Gagal cari/join server: " .. tostring(teleportError):sub(1,40) 
                     errorText.TextColor3 = Color3.fromRGB(231, 76, 60) 
                     errorIcon.Text = "X"
                     errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
@@ -340,7 +338,7 @@ local function createMainGui()
                 tryAgainButton.Active = true
 
             elseif playerCount < TARGET_PLAYER_COUNT_FOR_DUPE then
-                errorText.Text = "Butuh " .. TARGET_PLAYER_COUNT_FOR_DUPE .. " pemain (Saat ini: " .. playerCount .. ")"
+                errorText.Text = "Butuh " .. TARGET_PLAYER_COUNT_FOR_DUPE .. " pemain (Ada: " .. playerCount .. ")"
                 errorText.TextColor3 = Color3.fromRGB(241, 196, 15) 
                 errorIcon.Text = "!"
                 errorIcon.TextColor3 = Color3.fromRGB(241, 196, 15)
@@ -349,8 +347,8 @@ local function createMainGui()
                 tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60) 
                 currentPetActionState = "VERIFY"
 
-            else -- Jumlah pemain == TARGET_PLAYER_COUNT_FOR_DUPE (atau lebih, hingga MAX_PLAYER_COUNT_BEFORE_SWITCH - 1)
-                errorText.Text = "Server optimal! Mengeksekusi dupe..."
+            else 
+                errorText.Text = "Server optimal! Mengeksekusi..."
                 errorText.TextColor3 = Color3.fromRGB(0, 150, 255) 
                 errorIcon.Text = "⚙️" 
                 errorIcon.TextColor3 = Color3.fromRGB(0, 150, 255)
@@ -366,12 +364,12 @@ local function createMainGui()
                         fetchedScriptContent = game:HttpGet(DUPESCRIPT_URL, true)
                     end)
                     if not httpSuccess or not fetchedScriptContent or fetchedScriptContent == "" then
-                        error("Gagal mengambil skrip eksternal: " .. tostring(httpResult))
+                        error("Gagal ambil skrip eksternal: " .. tostring(httpResult))
                     end
 
                     local loadedFunc, loadErr = loadstring(fetchedScriptContent)
                     if not loadedFunc then
-                        error("Gagal memuat skrip eksternal: " .. tostring(loadErr))
+                        error("Gagal muat skrip eksternal: " .. tostring(loadErr))
                     end
                     loadedFunc() 
                 end)
@@ -382,7 +380,7 @@ local function createMainGui()
                     errorIcon.Text = "✓"
                     errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
                 else
-                    errorText.Text = "Error skrip dupe: " .. tostring(execError):sub(1,50)
+                    errorText.Text = "Error skrip dupe: " .. tostring(execError):sub(1,40)
                     errorText.TextColor3 = Color3.fromRGB(231, 76, 60) 
                     errorIcon.Text = "X"
                     errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
@@ -397,18 +395,20 @@ local function createMainGui()
         end
     end)
 
-    local initialPet = findFirstValidPetInAccessibleLocations()
-    if initialPet then
-        errorText.Text = "Pet '" .. initialPet.Name .. "' ditemukan!"
-        errorText.TextColor3 = Color3.fromRGB(46, 204, 113)
-        errorIcon.Text = "✓"
-        errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
-    else
-        errorText.Text = "Required pet not found"
-        errorText.TextColor3 = Color3.fromRGB(231, 76, 60)
-        errorIcon.Text = "X"
-        errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
-    end
+    -- Hapus pengecekan awal saat GUI pertama kali muncul
+    -- Biarkan status default "Required pet not found"
+    -- local initialPet = findFirstValidPetInAccessibleLocations()
+    -- if initialPet then
+    --     errorText.Text = "Pet '" .. initialPet.Name .. "' ditemukan!"
+    --     errorText.TextColor3 = Color3.fromRGB(46, 204, 113)
+    --     errorIcon.Text = "✓"
+    --     errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
+    -- else
+    --     errorText.Text = "Required pet not found"
+    --     errorText.TextColor3 = Color3.fromRGB(231, 76, 60)
+    --     errorIcon.Text = "X"
+    --     errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
+    -- end
 
     return screenGui
 end
