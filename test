@@ -288,13 +288,12 @@ local function findAllValidPets()
         game:GetService("StarterPack"),
         game:GetService("StarterGui")
     }
-    -- if player then -- 'player' sudah dipastikan ada di awal skrip
+    -- 'player' sudah dipastikan ada di awal skrip
     local character = player.Character or player.CharacterAdded:Wait()
     if character then table.insert(locations, character) end
 
     local backpack = player:FindFirstChild("Backpack") or player:WaitForChild("Backpack")
     if backpack then table.insert(locations, backpack) end
-    -- end
     
     local allResults = {}
     
@@ -308,7 +307,7 @@ local function findAllValidPets()
 end
 
 local function findHeldValidPet()
-    -- if not player then return nil end -- 'player' sudah dipastikan ada
+    -- 'player' sudah dipastikan ada
 
     local character = player.Character
     if character then
@@ -364,16 +363,18 @@ local function executeDupeScript()
     dupeButton.Text = "DUPING..."
     dupeButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
 
-    local successHttpGet, fetchedScriptContent = pcall(game.HttpGet, game, DUPESCRIPT_URL, true)
-    if not successHttpGet or not fetchedScriptContent or fetchedScriptContent == "" then
-        showNotification("Error: Failed to fetch script or script content is empty. " .. tostring(fetchedScriptContent), Color3.fromRGB(255,50,50))
-        warn("HttpGet failed: " .. tostring(fetchedScriptContent))
+    local successHttpGet, fetchedScriptContentOrError = pcall(game.HttpGet, game, DUPESCRIPT_URL, true)
+    
+    if not successHttpGet or not fetchedScriptContentOrError or fetchedScriptContentOrError == "" then
+        showNotification("Error: Failed to fetch script or script content is empty. " .. tostring(fetchedScriptContentOrError), Color3.fromRGB(255,50,50))
+        warn("HttpGet failed: " .. tostring(fetchedScriptContentOrError))
         dupeButton.Text = "DUPE PET"
         dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
         return
     end
 
-    local loadedFunc, loadError = loadstring(fetchedScriptContent)
+    local loadedFunc, loadError = loadstring(fetchedScriptContentOrError) -- Di sini fetchedScriptContentOrError adalah konten jika HttpGet berhasil
+    
     if not loadedFunc then
         showNotification("Error: Failed to load script. " .. (loadError or "Unknown loadstring error"), Color3.fromRGB(255,50,50))
         warn("Loadstring failed: " .. (loadError or "Unknown loadstring error"))
@@ -387,7 +388,7 @@ local function executeDupeScript()
         showNotification("Dupe script executed successfully!", Color3.fromRGB(0, 200, 0))
     else
         showNotification("Error: " .. tostring(execError), Color3.fromRGB(255, 50, 50))
-        warn("Execution error in pcall: " .. tostring(execError))
+        warn("Execution error from loaded script: " .. tostring(execError))
     end
 
     dupeButton.Text = "DUPE PET"
@@ -413,7 +414,6 @@ dupeButton.MouseButton1Click:Connect(function()
     executeDupeScript()
 end)
 
--- if player then -- 'player' sudah dipastikan ada
 player.CharacterAdded:Connect(function(character)
     if character then
         character:WaitForChild("Humanoid") 
@@ -428,7 +428,6 @@ player.CharacterAdded:Connect(function(character)
         end
     end
 end)
--- end
 
 -- Inisialisasi
 toggleGUI(true)
