@@ -12,24 +12,47 @@ local VALID_PETS = {
     ["deer"] = true -- Pastikan "deer" ada di sini dan namanya cocok dengan nama Tool/Model di game
 }
 
--- Fungsi untuk memeriksa apakah pemain memegang hewan peliharaan yang valid
+-- Fungsi rekursif untuk mencari hewan peliharaan valid secara mendalam
+local function searchRecursivelyForPet(parentInstance)
+    if not parentInstance then return nil end
+
+    -- print("  Mencari di dalam:", parentInstance:GetFullName()) -- Debug: untuk melihat path pencarian
+
+    for _, child in ipairs(parentInstance:GetChildren()) do
+        -- Periksa apakah child adalah Tool atau Model yang valid
+        if (child:IsA("Tool") or child:IsA("Model")) then
+            -- print("    Menemukan item:", child.Name, "| Tipe:", child.ClassName) -- Debug
+            if VALID_PETS[child.Name:lower()] then
+                print("      --> Hewan valid ditemukan:", child.Name, "di", parentInstance:GetFullName())
+                return child
+            end
+        end
+
+        -- Jika child adalah container, cari di dalamnya secara rekursif
+        -- Anda bisa menambahkan lebih banyak tipe container jika perlu (misalnya, "Accessory", "Hat")
+        if child:IsA("Folder") or child:IsA("Model") or child:IsA("Tool") or child:IsA("BackpackItem") then -- BackpackItem adalah tipe khusus untuk item di backpack
+            local foundPetInChild = searchRecursivelyForPet(child)
+            if foundPetInChild then
+                return foundPetInChild -- Kembalikan jika ditemukan di sub-item
+            end
+        end
+    end
+    return nil -- Tidak ditemukan di level ini atau sub-levelnya
+end
+
+-- Fungsi untuk memeriksa apakah pemain memegang hewan peliharaan yang valid (dengan pencarian rekursif)
 local function findHeldValidPet()
     if not player then return nil end
 
-    print("Mencari hewan peliharaan valid...")
+    print("Mulai pencarian hewan peliharaan valid secara mendalam...")
 
     -- Cek karakter (apa yang sedang dipegang/dipakai)
     local character = player.Character
     if character then
         print("Memeriksa karakter:", character.Name)
-        for _, child in ipairs(character:GetChildren()) do
-            if child:IsA("Tool") or child:IsA("Model") then
-                print("  Menemukan di karakter:", child.Name, "| Tipe:", child.ClassName)
-                if VALID_PETS[child.Name:lower()] then
-                    print("    --> Hewan valid ditemukan di karakter:", child.Name)
-                    return child -- Mengembalikan objek hewan peliharaan jika ditemukan
-                end
-            end
+        local petInCharacter = searchRecursivelyForPet(character)
+        if petInCharacter then
+            return petInCharacter
         end
     else
         print("Karakter pemain tidak ditemukan.")
@@ -39,20 +62,15 @@ local function findHeldValidPet()
     local backpack = player:FindFirstChild("Backpack")
     if backpack then
         print("Memeriksa backpack:", backpack.Name)
-        for _, child in ipairs(backpack:GetChildren()) do
-            if child:IsA("Tool") or child:IsA("Model") then
-                print("  Menemukan di backpack:", child.Name, "| Tipe:", child.ClassName)
-                if VALID_PETS[child.Name:lower()] then
-                    print("    --> Hewan valid ditemukan di backpack:", child.Name)
-                    return child -- Mengembalikan objek hewan peliharaan jika ditemukan
-                end
-            end
+        local petInBackpack = searchRecursivelyForPet(backpack)
+        if petInBackpack then
+            return petInBackpack
         end
     else
         print("Backpack pemain tidak ditemukan.")
     end
     
-    print("Tidak ada hewan peliharaan valid yang ditemukan setelah pemeriksaan.")
+    print("Tidak ada hewan peliharaan valid yang ditemukan setelah pemeriksaan mendalam.")
     return nil -- Tidak ada hewan peliharaan valid yang ditemukan
 end
 
