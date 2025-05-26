@@ -103,26 +103,29 @@ end
 
 -- Fungsi Validasi Pet
 local function hasValidPet()
-    local character = player.Character or player.CharacterAdded:Wait()
     local validPets = { "Red Fox", "Raccoon", "Dragonfly", "Praying Mantis", "Deer" }
 
-    for _, tool in ipairs(character:GetChildren()) do
-        if tool:IsA("Tool") and table.find(validPets, tool.Name) then
-            return true
-        end
-    end
-
-    local backpack = player:FindFirstChild("Backpack")
-    if backpack then
-        for _, tool in ipairs(backpack:GetChildren()) do
-            if tool:IsA("Tool") and table.find(validPets, tool.Name) then
-                return true
+    local function checkItems(container)
+        for _, item in ipairs(container:GetDescendants()) do
+            if item:IsA("Tool") or item:IsA("Model") then
+                if table.find(validPets, item.Name) then
+                    print("[DEBUG] Valid pet ditemukan:", item.Name)
+                    return true
+                end
             end
         end
+        return false
     end
+
+    local character = player.Character or player.CharacterAdded:Wait()
+    if checkItems(character) then return true end
+
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack and checkItems(backpack) then return true end
 
     return false
 end
+
 
 -- Fungsi Eksekusi
 local function executeExternalScript()
