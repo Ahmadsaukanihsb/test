@@ -3,6 +3,43 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- Daftar hewan peliharaan yang valid (sesuaikan jika perlu)
+local VALID_PETS = {
+    ["red fox"] = true,
+    ["dragonfly"] = true,
+    ["raccoon"] = true,
+    ["praying mantis"] = true,
+    ["deer"] = true -- Pastikan "deer" ada di sini dan namanya cocok dengan nama Tool/Model di game
+}
+
+-- Fungsi untuk memeriksa apakah pemain memegang hewan peliharaan yang valid
+local function findHeldValidPet()
+    if not player then return nil end
+
+    -- Cek karakter (apa yang sedang dipegang/dipakai)
+    local character = player.Character
+    if character then
+        for _, child in ipairs(character:GetChildren()) do
+            if (child:IsA("Tool") or child:IsA("Model")) and VALID_PETS[child.Name:lower()] then
+                return child -- Mengembalikan objek hewan peliharaan jika ditemukan
+            end
+        end
+    end
+
+    -- Cek backpack (inventaris)
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        for _, child in ipairs(backpack:GetChildren()) do
+            if (child:IsA("Tool") or child:IsA("Model")) and VALID_PETS[child.Name:lower()] then
+                return child -- Mengembalikan objek hewan peliharaan jika ditemukan
+            end
+        end
+    end
+    
+    return nil -- Tidak ada hewan peliharaan valid yang ditemukan
+end
+
+
 -- Fungsi untuk membuat ScreenGui utama
 local function createMainGui()
     -- Hapus GUI lama jika ada dengan nama yang sama (opsional, untuk pengujian)
@@ -181,19 +218,38 @@ local function createMainGui()
     end)
     
     tryAgainButton.MouseButton1Click:Connect(function()
-        print("Tombol 'Try Again' diklik!")
-        errorText.Text = "Checking for pets..."
-        errorText.TextColor3 = Color3.fromRGB(241, 196, 15)
-        errorIcon.Text = "!"
-        errorIcon.TextColor3 = Color3.fromRGB(241, 196, 15)
+        print("Tombol 'Try Again' diklik! Memeriksa hewan peliharaan...")
+        local heldPet = findHeldValidPet()
 
-        task.wait(1.5) 
-
-        errorText.Text = "Required pet not found"
-        errorText.TextColor3 = Color3.fromRGB(231, 76, 60)
-        errorIcon.Text = "X"
-        errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
+        if heldPet then
+            print("Hewan peliharaan valid ditemukan:", heldPet.Name)
+            errorText.Text = "Pet '" .. heldPet.Name .. "' found!"
+            errorText.TextColor3 = Color3.fromRGB(46, 204, 113) -- Warna hijau untuk sukses
+            errorIcon.Text = "✓" -- Ikon centang
+            errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
+            -- Di sini Anda bisa mengubah tombol "Try Again" menjadi "Start Duplicating" atau semacamnya
+            -- tryAgainButton.Text = "Start Duplicating"
+            -- tryAgainButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113) 
+        else
+            print("Tidak ada hewan peliharaan valid yang dipegang.")
+            errorText.Text = "Required pet not found"
+            errorText.TextColor3 = Color3.fromRGB(231, 76, 60) -- Warna merah
+            errorIcon.Text = "X"
+            errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
+            -- Pastikan tombol kembali ke status "Try Again" jika sebelumnya diubah
+            -- tryAgainButton.Text = "🔄 Try Again"
+            -- tryAgainButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+        end
     end)
+
+    -- Pengecekan awal saat GUI pertama kali muncul
+    local initialHeldPet = findHeldValidPet()
+    if initialHeldPet then
+        errorText.Text = "Pet '" .. initialHeldPet.Name .. "' found!"
+        errorText.TextColor3 = Color3.fromRGB(46, 204, 113)
+        errorIcon.Text = "✓"
+        errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
+    end
 
     return screenGui
 end
