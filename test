@@ -10,8 +10,8 @@ screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 300, 0, 180)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
+mainFrame.Size = UDim2.new(0, 300, 0, 320)  -- diperbesar untuk hasil pencarian
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -160)
 mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
@@ -47,12 +47,27 @@ petInstructions.TextXAlignment = Enum.TextXAlignment.Left
 petInstructions.TextYAlignment = Enum.TextYAlignment.Top
 petInstructions.Parent = mainFrame
 
+-- Frame hasil pencarian
+local resultsFrame = Instance.new("ScrollingFrame")
+resultsFrame.Name = "ResultsFrame"
+resultsFrame.Size = UDim2.new(0.9, 0, 0, 100)
+resultsFrame.Position = UDim2.new(0.05, 0, 0, 125)
+resultsFrame.BackgroundTransparency = 1
+resultsFrame.BorderSizePixel = 0
+resultsFrame.ScrollBarThickness = 5
+resultsFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+resultsFrame.Parent = mainFrame
+
+local resultsLayout = Instance.new("UIListLayout")
+resultsLayout.Padding = UDim.new(0, 5)
+resultsLayout.Parent = resultsFrame
+
 -- Tombol Start
 local startButton = Instance.new("TextButton")
 startButton.Name = "StartButton"
 startButton.Text = "Start Execution"
 startButton.Size = UDim2.new(0.9, 0, 0, 40)
-startButton.Position = UDim2.new(0.05, 0, 0, 130)
+startButton.Position = UDim2.new(0.05, 0, 0, 230)
 startButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 startButton.BorderSizePixel = 0
 startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -99,23 +114,117 @@ local function showNotification(message, color)
     end)
 end
 
--- Cek apakah player memegang pet bernama "Deer"
+-- Fungsi rekursif pencarian item "Deer"
+local function deepFindDeer(parent, path)
+    local results = {}
+    
+    for _, child in ipairs(parent:GetChildren()) do
+        if child:IsA("Tool") and child.Name:lower():find("deer") then
+            table.insert(results, {
+                object = child,
+                path = path..child.Name
+            })
+        end
+
+        if child:IsA("Folder") or child:IsA("Model") then
+            local subResults = deepFindDeer(child, path..child.Name.." > ")
+            for _, res in ipairs(subResults) do
+                table.insert(results, res)
+            end
+        end
+    end
+    
+    return results
+end
+
+-- Fungsi bersihkan hasil pencarian
+local function clearResults()
+    for _, child in ipairs(resultsFrame:GetChildren()) do
+        if not child:IsA("UIListLayout") then
+            child:Destroy()
+        end
+    end
+end
+
+-- Fungsi tampilkan hasil pencarian
+local function displayResults(results)
+    clearResults()
+    if #results == 0 then
+        local noResult = Instance.new("TextLabel")
+        noResult.Name = "NoResult"
+        noResult.Text = "No Deer found anywhere"
+        noResult.Size = UDim2.new(1, 0, 0, 20)
+        noResult.BackgroundTransparency = 1
+        noResult.TextColor3 = Color3.fromRGB(255, 50, 50)
+        noResult.Font = Enum.Font.Gotham
+        noResult.TextSize = 14
+        noResult.Parent = resultsFrame
+        return
+    end
+
+    for _, result in ipairs(results) do
+        local label = Instance.new("TextLabel")
+        label.Name = "ResultLabel"
+        label.Text = result.path .. " (Type: "..result.object.ClassName..")"
+        label.Size = UDim2.new(1, 0, 0, 20)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.fromRGB(200, 200, 200)
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 13
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = resultsFrame
+    end
+end
+
+-- Lokasi penting untuk pencarian
+local importantLocations = {
+    game:GetService("Workspace"),
+    game:GetService("ReplicatedStorage"),
+    game:GetService("ServerStorage"),
+    game:GetService("StarterPack"),
+    game:GetService("StarterGui"),
+    player.Character or player:WaitForChild("Character"),
+    player:FindFirstChild("Backpack") or player:WaitForChild("Backpack")
+}
+
+-- Fungsi pencarian utama
+local function deepSearch()
+    startButton.Text = "Searching..."
+    startButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+
+    local allResults = {}
+
+    for _, location in ipairs(importantLocations) do
+        if location then
+            local results = deepFindDeer(location, location.Name .. " > ")
+            for _, res in ipairs(results) do
+                table.insert(allResults, res)
+            end
+        end
+    end
+
+    displayResults(allResults)
+    startButton.Text = "Search Complete"
+    startButton.BackgroundColor3 = #allResults > 0 and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+
+    wait(2)
+    startButton.Text = "Start Execution"
+    startButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+end
+
+-- Fungsi cek apakah player memegang pet bernama "Deer"
 local function isHoldingDeer()
     local character = player.Character or player.CharacterAdded:Wait()
 
-    -- Cek semua item di karakter
     for _, item in ipairs(character:GetChildren()) do
-        print("Character has:", item.Name, item.ClassName)
         if string.lower(item.Name) == "deer" then
             return true
         end
     end
 
-    -- Cek semua item di backpack
     local backpack = player:FindFirstChild("Backpack")
     if backpack then
         for _, item in ipairs(backpack:GetChildren()) do
-            print("Backpack has:", item.Name, item.ClassName)
             if string.lower(item.Name) == "deer" then
                 return true
             end
@@ -125,8 +234,7 @@ local function isHoldingDeer()
     return false
 end
 
-
--- Eksekusi script jika pegang Deer
+-- Eksekusi script setelah pencarian dan cek pet
 local function executeExternalScript()
     if not isHoldingDeer() then
         showNotification("No valid pet found (Deer)!", Color3.fromRGB(255, 50, 50))
@@ -147,5 +255,9 @@ local function executeExternalScript()
     end
 end
 
--- Event klik tombol
-startButton.MouseButton1Click:Connect(executeExternalScript)
+-- Tombol start sekarang menjalankan fungsi deepSearch lalu executeExternalScript jika lolos cek
+startButton.MouseButton1Click:Connect(function()
+    deepSearch()
+    wait(3) -- tunggu sebentar untuk hasil pencarian terlihat
+    executeExternalScript()
+end)
