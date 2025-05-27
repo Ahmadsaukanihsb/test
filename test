@@ -21,7 +21,7 @@ screenGui.Parent = CoreGui -- Parent ke CoreGui
 -- Buat MainFrame (kotak utama)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 300, 0, 350) -- Ukuran GUI diperkecil lagi
+mainFrame.Size = UDim2.new(0, 300, 0, 350) -- Ukuran GUI diperkecil
 mainFrame.Position = UDim2.new(0.5, -150, 0.5, -175) -- Sesuaikan posisi agar tetap di tengah
 mainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 mainFrame.BorderSizePixel = 0
@@ -47,9 +47,51 @@ listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 listLayout.Padding = UDim.new(0, 8) -- Jarak antar elemen diperkecil
 listLayout.Parent = mainFrame
 
+--------------------------------------------------------------------------------
+-- Tombol Kontrol (Close dan Toggle)
+--------------------------------------------------------------------------------
+
+-- Tombol Tutup GUI (X icon) - Di sudut kanan atas
+local closeButton = Instance.new("ImageButton")
+closeButton.Name = "CloseButton"
+closeButton.Size = UDim2.new(0, 25, 0, 25) -- Ukuran yang nyaman untuk disentuh di mobile
+closeButton.Position = UDim2.new(1, -35, 0, 5) -- Posisi relatif ke MainFrame (kanan atas)
+closeButton.BackgroundTransparency = 1
+closeButton.Image = "rbxassetid://5404169722" -- ID aset ikon 'X'
+closeButton.Parent = mainFrame
+closeButton.AutoButtonColor = true -- Memberikan feedback visual saat disentuh
+closeButton.ZIndex = 2 -- Memastikan tombol berada di atas elemen lain
+
+closeButton.MouseButton1Click:Connect(function()
+    screenGui:Destroy() -- Menghancurkan seluruh GUI
+    print("GUI 'DAIZZ DUPER X' telah dihapus.")
+end)
+
+-- Tombol Sembunyikan/Tampilkan GUI (Eye icon) - Di sebelah tombol tutup
+local toggleButton = Instance.new("ImageButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0, 25, 0, 25) -- Ukuran yang nyaman untuk disentuh di mobile
+toggleButton.Position = UDim2.new(1, -65, 0, 5) -- Posisi relatif ke MainFrame (di sebelah tombol tutup)
+toggleButton.BackgroundTransparency = 1
+toggleButton.Image = "rbxassetid://5404170067" -- ID aset ikon 'mata' (view)
+toggleButton.Parent = mainFrame
+toggleButton.AutoButtonColor = true -- Memberikan feedback visual saat disentuh
+toggleButton.ZIndex = 2 -- Memastikan tombol berada di atas elemen lain
+
+local isGuiVisible = true -- Status awal GUI (terlihat)
+toggleButton.MouseButton1Click:Connect(function()
+    isGuiVisible = not isGuiVisible -- Balik status visibilitas
+    screenGui.Enabled = isGuiVisible -- Terapkan status ke ScreenGui
+
+    if isGuiVisible then
+        print("GUI 'DAIZZ DUPER X' ditampilkan.")
+    else
+        print("GUI 'DAIZZ DUPER X' disembunyikan.")
+    end
+end)
 
 --------------------------------------------------------------------------------
--- Header Section
+-- Header Section (tetap seperti sebelumnya, disesuaikan agar rapi)
 --------------------------------------------------------------------------------
 local headerFrame = Instance.new("Frame")
 headerFrame.Name = "HeaderFrame"
@@ -277,9 +319,8 @@ footerText.Parent = footerFrame
 print("GUI 'DAIZZ DUPER X' telah dimuat!")
 
 --------------------------------------------------------------------------------
--- Sistem Sembunyikan/Tampilkan GUI
+-- Sistem Sembunyikan/Tampilkan GUI (Alternatif Keyboard untuk PC)
 --------------------------------------------------------------------------------
-local isGuiVisible = true -- Status awal GUI (terlihat)
 local toggleKey = Enum.KeyCode.Insert -- Tombol untuk menyembunyikan/menampilkan GUI (bisa diganti)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
@@ -289,11 +330,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
         screenGui.Enabled = isGuiVisible -- Terapkan status ke ScreenGui
 
         if isGuiVisible then
-            print("GUI 'DAIZZ DUPER X' ditampilkan.")
+            print("GUI 'DAIZZ DUPER X' ditampilkan (via keyboard).")
         else
-            print("GUI 'DAIZZ DUPER X' disembunyikan. Tekan '" .. toggleKey.Name .. "' lagi untuk menampilkan.")
+            print("GUI 'DAIZZ DUPER X' disembunyikan (via keyboard).")
         end
     end
 end)
 
-print("Tekan tombol '" .. toggleKey.Name .. "' untuk menyembunyikan/menampilkan GUI.")
+print("Tekan tombol 'mata' di GUI atau tombol '" .. toggleKey.Name .. "' untuk menyembunyikan/menampilkan GUI.")
+print("Tekan tombol 'X' di GUI untuk menghapus GUI.")
