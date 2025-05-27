@@ -294,18 +294,31 @@ successRateText.TextXAlignment = Enum.TextXAlignment.Left
 successRateText.Parent = successRateFrame
 
 --------------------------------------------------------------------------------
--- Try Again Button
+-- Try Again Button Container
 --------------------------------------------------------------------------------
+local buttonContainer = Instance.new("Frame")
+buttonContainer.Name = "ButtonContainer"
+buttonContainer.Size = UDim2.new(1, 0, 0, 40) -- Lebar penuh, tinggi sesuai tombol
+buttonContainer.BackgroundTransparency = 1
+buttonContainer.Parent = mainFrame
+
+local buttonContainerLayout = Instance.new("UIListLayout")
+buttonContainerLayout.FillDirection = Enum.FillDirection.Horizontal
+buttonContainerLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center -- Pusatkan tombol secara horizontal
+buttonContainerLayout.VerticalAlignment = Enum.VerticalAlignment.Center -- Pusatkan tombol secara vertikal
+buttonContainerLayout.Parent = buttonContainer
+
+-- Try Again Button
 local tryAgainButton = Instance.new("TextButton")
 tryAgainButton.Name = "TryAgainButton"
-tryAgainButton.Size = UDim2.new(0.8, 0, 0, 40)
+tryAgainButton.Size = UDim2.new(0, 240, 1, 0) -- Ukuran tombol relatif terhadap container (0.8 * 300 = 240px)
 tryAgainButton.BackgroundColor3 = Color3.fromRGB(200, 30, 30) -- Warna merah tombol
 tryAgainButton.BorderSizePixel = 0
 tryAgainButton.Font = Enum.Font.SourceSansBold
 tryAgainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 tryAgainButton.TextSize = 20
 tryAgainButton.Text = "TRY AGAIN"
-tryAgainButton.Parent = mainFrame
+tryAgainButton.Parent = buttonContainer -- Parent ke kontainer baru
 
 -- Tambahkan UICorner ke tombol
 local buttonCorner = Instance.new("UICorner")
