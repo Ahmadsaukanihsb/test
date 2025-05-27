@@ -1,210 +1,269 @@
--- Services
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService") -- Untuk efek hover jika diperlukan nanti
+-- LocalScript di dalam ScreenGui
 
--- GUI Elements
-local mainMenuGui = script.Parent
-local toggleButton = mainMenuGui:WaitForChild("ToggleButton")
-local menuBackground = mainMenuGui:WaitForChild("MenuBackground")
-local equipButton = mainMenuGui:WaitForChild("EquipButton")
-local uiCloseButton = menuBackground:FindFirstChild("UICloseButton") -- Opsional, jika Anda membuatnya
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local itemButtons = {} -- Kita akan isi ini nanti jika ingin animasi per item
-for _, child in ipairs(menuBackground:GetChildren()) do
-    if child:IsA("ImageButton") and child.Name:match("Item") then -- Hanya ambil ImageButton yang namanya "Item..."
-        table.insert(itemButtons, child)
-    end
+-- Buat ScreenGui (jika belum ada, tapi disarankan dibuat manual di StarterGui)
+local screenGui = script.Parent -- Asumsi LocalScript ini ada di dalam ScreenGui
+
+-- Pastikan ScreenGui tidak reset saat spawn
+screenGui.ResetOnSpawn = false
+screenGui.DisplayOrder = 10 -- Pastikan muncul di atas GUI lainnya
+
+-- Buat MainFrame (kotak utama)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 450, 0, 480) -- Sesuaikan ukuran
+mainFrame.Position = UDim2.new(0.5, -225, 0.5, -240) -- Tengah layar
+mainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+-- Tambahkan UICorner ke MainFrame untuk sudut melengkung
+local mainFrameCorner = Instance.new("UICorner")
+mainFrameCorner.CornerRadius = UDim.new(0, 10) -- Sesuaikan radius
+mainFrameCorner.Parent = mainFrame
+
+-- UI Padding untuk memberi sedikit ruang di dalam frame
+local uiPadding = Instance.new("UIPadding")
+uiPadding.PaddingTop = UDim.new(0, 15)
+uiPadding.PaddingBottom = UDim.new(0, 15)
+uiPadding.PaddingLeft = UDim.new(0, 20)
+uiPadding.PaddingRight = UDim.new(0, 20)
+uiPadding.Parent = mainFrame
+
+-- UIListLayout untuk mengatur elemen secara vertikal
+local listLayout = Instance.new("UIListLayout")
+listLayout.FillDirection = Enum.FillDirection.Vertical
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+listLayout.Padding = UDim.new(0, 10) -- Jarak antar elemen
+listLayout.Parent = mainFrame
+
+
+--------------------------------------------------------------------------------
+-- Header Section
+--------------------------------------------------------------------------------
+local headerFrame = Instance.new("Frame")
+headerFrame.Name = "HeaderFrame"
+headerFrame.Size = UDim2.new(1, 0, 0, 30) -- Lebar penuh, tinggi 30
+headerFrame.BackgroundTransparency = 1
+headerFrame.Parent = mainFrame
+
+local headerListLayout = Instance.new("UIListLayout")
+headerListLayout.FillDirection = Enum.FillDirection.Horizontal
+headerListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+headerListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+headerListLayout.Padding = UDim.new(0, 5)
+headerListLayout.Parent = headerFrame
+
+-- Icon Petir (Lightning)
+local lightningIcon = Instance.new("ImageLabel")
+lightningIcon.Name = "LightningIcon"
+lightningIcon.Size = UDim2.new(0, 25, 0, 25)
+lightningIcon.BackgroundTransparency = 1
+lightningIcon.Image = "rbxassetid://6034177579" -- Contoh ID ikon petir (cari ikon Roblox yang sesuai)
+lightningIcon.Parent = headerFrame
+
+-- Judul "DAIZZ DUPER X"
+local titleText = Instance.new("TextLabel")
+titleText.Name = "TitleText"
+titleText.Size = UDim2.new(0, 160, 0, 30) -- Sesuaikan ukuran
+titleText.BackgroundTransparency = 1
+titleText.Font = Enum.Font.SourceSansBold -- Font tebal
+titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleText.TextSize = 24
+titleText.Text = "DAIZZ DUPER X"
+titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.Parent = headerFrame
+
+-- Versi "(v3.2.1)"
+local versionText = Instance.new("TextLabel")
+versionText.Name = "VersionText"
+versionText.Size = UDim2.new(0, 80, 0, 30) -- Sesuaikan ukuran
+versionText.BackgroundTransparency = 1
+versionText.Font = Enum.Font.SourceSansLight -- Font lebih tipis
+versionText.TextColor3 = Color3.fromRGB(200, 200, 200)
+versionText.TextSize = 18
+versionText.Text = "(v3.2.1)"
+versionText.TextXAlignment = Enum.TextXAlignment.Left
+versionText.Parent = headerFrame
+
+--------------------------------------------------------------------------------
+-- Error Section
+--------------------------------------------------------------------------------
+local errorFrame = Instance.new("Frame")
+errorFrame.Name = "ErrorFrame"
+errorFrame.Size = UDim2.new(1, 0, 0, 100) -- Lebar penuh, tinggi 100
+errorFrame.BackgroundColor3 = Color3.fromRGB(150, 0, 0) -- Warna merah gelap
+errorFrame.BorderSizePixel = 0
+errorFrame.Parent = mainFrame
+
+-- Tambahkan UICorner ke errorFrame
+local errorFrameCorner = Instance.new("UICorner")
+errorFrameCorner.CornerRadius = UDim.new(0, 8)
+errorFrameCorner.Parent = errorFrame
+
+-- UIListLayout untuk konten error
+local errorListLayout = Instance.new("UIListLayout")
+errorListLayout.FillDirection = Enum.FillDirection.Vertical
+errorListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+errorListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+errorListLayout.Padding = UDim.new(0, 5)
+errorListLayout.Parent = errorFrame
+
+-- Icon X Merah
+local errorIcon = Instance.new("ImageLabel")
+errorIcon.Name = "ErrorIcon"
+errorIcon.Size = UDim2.new(0, 40, 0, 40)
+errorIcon.BackgroundTransparency = 1
+errorIcon.Image = "rbxassetid://6034177579" -- Kamu perlu menemukan ID ikon X merah atau mengunggahnya
+-- Contoh icon error dari Roblox: rbxassetid://6034177579 (ini icon warning, cari yang lebih cocok)
+errorIcon.Parent = errorFrame
+
+-- Text "ERROR: REQUIRED PET NOT FOUND"
+local errorTitle = Instance.new("TextLabel")
+errorTitle.Name = "ErrorTitle"
+errorTitle.Size = UDim2.new(1, -20, 0, 25) -- Lebar penuh, dengan padding
+errorTitle.BackgroundTransparency = 1
+errorTitle.Font = Enum.Font.SourceSansBold
+errorTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+errorTitle.TextSize = 20
+errorTitle.Text = "ERROR: REQUIRED PET NOT FOUND"
+errorTitle.Parent = errorFrame
+
+-- Text "REQUIRES RED FOX, DRAGONFLY, OR RACCOON!"
+local errorMessage = Instance.new("TextLabel")
+errorMessage.Name = "ErrorMessage"
+errorMessage.Size = UDim2.new(1, -20, 0, 20)
+errorMessage.BackgroundTransparency = 1
+errorMessage.Font = Enum.Font.SourceSansSemibold
+errorMessage.TextColor3 = Color3.fromRGB(255, 255, 255)
+errorMessage.TextSize = 16
+errorMessage.Text = "REQUIRES RED FOX, DRAGONFLY, OR RACCOON!"
+errorMessage.Parent = errorFrame
+
+--------------------------------------------------------------------------------
+-- Instructions Section
+--------------------------------------------------------------------------------
+local instructionsFrame = Instance.new("Frame")
+instructionsFrame.Name = "InstructionsFrame"
+instructionsFrame.Size = UDim2.new(1, 0, 0, 160) -- Sesuaikan tinggi
+instructionsFrame.BackgroundTransparency = 1
+instructionsFrame.Parent = mainFrame
+
+local instructionsListLayout = Instance.new("UIListLayout")
+instructionsListLayout.FillDirection = Enum.FillDirection.Vertical
+instructionsListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left -- Instruksi rata kiri
+instructionsListLayout.Padding = UDim.new(0, 5)
+instructionsListLayout.Parent = instructionsFrame
+
+-- Icon Instruksi (kertas/daftar)
+local instructionsIcon = Instance.new("ImageLabel")
+instructionsIcon.Name = "InstructionsIcon"
+instructionsIcon.Size = UDim2.new(0, 30, 0, 30)
+instructionsIcon.BackgroundTransparency = 1
+instructionsIcon.Image = "rbxassetid://5971485304" -- Contoh ID ikon dokumen (cari yang sesuai)
+instructionsIcon.Parent = instructionsFrame -- Akan ditempatkan di atas instruksi
+
+-- Instruksi teks
+local instructions = {
+    "1. Hold a RED FOX/DRAGONFLY/RACCOON",
+    "2. Keep inventory open",
+    "3. Press DUPLICATE button",
+    "4. Wait 5-10 Minutes"
+}
+
+for i, text in ipairs(instructions) do
+    local instText = Instance.new("TextLabel")
+    instText.Name = "InstructionsText" .. i
+    instText.Size = UDim2.new(1, 0, 0, 20)
+    instText.BackgroundTransparency = 1
+    instText.Font = Enum.Font.SourceSansSemibold
+    instText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    instText.TextSize = 16
+    instText.TextXAlignment = Enum.TextXAlignment.Left
+    instText.Text = text
+    instText.Parent = instructionsFrame
 end
 
--- Animation Settings
-local fadeInInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local fadeOutInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-local scaleUpInfo = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out) -- Untuk hover
-local scaleDownInfo = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In) -- Kembali dari hover
-local clickInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+--------------------------------------------------------------------------------
+-- Success Rate Section
+--------------------------------------------------------------------------------
+local successRateFrame = Instance.new("Frame")
+successRateFrame.Name = "SuccessRateFrame"
+successRateFrame.Size = UDim2.new(1, 0, 0, 30)
+successRateFrame.BackgroundTransparency = 1
+successRateFrame.Parent = mainFrame
 
--- State
-local menuIsOpen = false
-local selectedItem = nil -- Untuk menyimpan item yang dipilih
+local successRateListLayout = Instance.new("UIListLayout")
+successRateListLayout.FillDirection = Enum.FillDirection.Horizontal
+successRateListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+successRateListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+successRateListLayout.Padding = UDim.new(0, 5)
+successRateListLayout.Parent = successRateFrame
 
--- Function to toggle menu visibility
-local function toggleMenu()
-    menuIsOpen = not menuIsOpen
-    menuBackground.Visible = menuIsOpen
-    equipButton.Visible = menuIsOpen and (selectedItem ~= nil) -- Hanya tampilkan Equip jika menu terbuka dan ada item terpilih
+-- Icon Centang Hijau
+local checkIcon = Instance.new("ImageLabel")
+checkIcon.Name = "CheckIcon"
+checkIcon.Size = UDim2.new(0, 25, 0, 25)
+checkIcon.BackgroundTransparency = 1
+checkIcon.Image = "rbxassetid://6034177579" -- Cari ID ikon centang hijau yang sesuai (misalnya rbxassetid://6034177579 adalah warning, cari yang lain)
+checkIcon.Parent = successRateFrame
 
-    local targetPosition
-    local targetTransparency
+-- Text "92% Success Rate"
+local successRateText = Instance.new("TextLabel")
+successRateText.Name = "SuccessRateText"
+successRateText.Size = UDim2.new(0, 150, 0, 30)
+successRateText.BackgroundTransparency = 1
+successRateText.Font = Enum.Font.SourceSansBold
+successRateText.TextColor3 = Color3.fromRGB(0, 255, 0) -- Warna hijau
+successRateText.TextSize = 20
+successRateText.Text = "92% Success Rate"
+successRateText.TextXAlignment = Enum.TextXAlignment.Left
+successRateText.Parent = successRateFrame
 
-    if menuIsOpen then
-        -- Animasi masuk
-        menuBackground.Position = UDim2.new(0.5, 0, 0.45, 0) -- Posisi awal sedikit ke atas
-        menuBackground.BackgroundTransparency = 1
-        for _, item in ipairs(itemButtons) do
-            item.ImageTransparency = 1
-            item.BackgroundTransparency = 1 -- Jika ada background color di button
-        end
-        equipButton.Position = UDim2.new(0.5, 0, 0.85, 0) -- Posisi awal Equip button
-        equipButton.BackgroundTransparency = 1
+--------------------------------------------------------------------------------
+-- Try Again Button
+--------------------------------------------------------------------------------
+local tryAgainButton = Instance.new("TextButton")
+tryAgainButton.Name = "TryAgainButton"
+tryAgainButton.Size = UDim2.new(0.8, 0, 0, 50) -- Lebar 80% dari parent, tinggi 50
+tryAgainButton.BackgroundColor3 = Color3.fromRGB(200, 30, 30) -- Warna merah tombol
+tryAgainButton.BorderSizePixel = 0
+tryAgainButton.Font = Enum.Font.SourceSansBold
+tryAgainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+tryAgainButton.TextSize = 24
+tryAgainButton.Text = "TRY AGAIN"
+tryAgainButton.Parent = mainFrame
 
-        local menuAppearTween = TweenService:Create(menuBackground, fadeInInfo, {
-            Position = UDim2.new(0.5, 0, 0.5, 0), -- Posisi tengah
-            BackgroundTransparency = 0 -- Sesuaikan dengan transparansi desain Anda
-        })
-        menuAppearTween:Play()
+-- Tambahkan UICorner ke tombol
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 8) -- Sesuaikan radius
+buttonCorner.Parent = tryAgainButton
 
-        -- Animasi item muncul satu per satu (opsional, lebih advance)
-        for i, item in ipairs(itemButtons) do
-            task.wait(0.05 * i) -- Delay kecil antar item
-            local itemAppearTween = TweenService:Create(item, fadeInInfo, {
-                ImageTransparency = 0,
-                BackgroundTransparency = 0 -- Sesuaikan
-            })
-            itemAppearTween:Play()
-        end
+-- Contoh event saat tombol diklik (bisa diganti sesuai kebutuhanmu)
+tryAgainButton.MouseButton1Click:Connect(function()
+    print("Tombol 'TRY AGAIN' diklik!")
+    -- Di sini kamu bisa menambahkan logika ketika tombol diklik
+    -- Misalnya, menyembunyikan GUI, mencoba lagi proses dupe, dll.
+end)
 
-        if selectedItem then
-            local equipAppearTween = TweenService:Create(equipButton, fadeInInfo, {
-                Position = UDim2.new(0.5, 0, 0.8, 0), -- Posisi Equip button
-                BackgroundTransparency = 0 -- Sesuaikan
-            })
-            equipAppearTween:Play()
-        end
+--------------------------------------------------------------------------------
+-- Footer (Discord Link)
+--------------------------------------------------------------------------------
+local footerFrame = Instance.new("Frame")
+footerFrame.Name = "FooterFrame"
+footerFrame.Size = UDim2.new(1, 0, 0, 20)
+footerFrame.BackgroundTransparency = 1
+footerFrame.Parent = mainFrame
 
-    else
-        -- Animasi keluar
-        local menuDisappearTween = TweenService:Create(menuBackground, fadeOutInfo, {
-            Position = UDim2.new(0.5, 0, 0.45, 0), -- Kembali ke atas
-            BackgroundTransparency = 1
-        })
-        menuDisappearTween:Play()
-
-        for _, item in ipairs(itemButtons) do
-            local itemDisappearTween = TweenService:Create(item, fadeOutInfo, {
-                ImageTransparency = 1,
-                BackgroundTransparency = 1
-            })
-            itemDisappearTween:Play()
-        end
-
-        local equipDisappearTween = TweenService:Create(equipButton, fadeOutInfo, {
-            Position = UDim2.new(0.5, 0, 0.85, 0),
-            BackgroundTransparency = 1
-        })
-        equipDisappearTween:Play()
-
-        -- Setelah animasi selesai, sembunyikan secara paksa jika belum
-        task.wait(fadeOutInfo.Time)
-        if not menuIsOpen then -- Cek lagi karena bisa saja user klik cepat
-            menuBackground.Visible = false
-            equipButton.Visible = false
-        end
-    end
-end
-
--- Function for item hover effect
-local function onItemHover(item, enter)
-    local currentSize = item.Size
-    local targetSize
-    local tweenInfoToUse
-
-    if enter then
-        targetSize = currentSize * 1.1 -- Sedikit membesar
-        tweenInfoToUse = scaleUpInfo
-        item.ZIndex = 2 -- Bawa ke depan agar tidak tertutup item lain saat scale
-    else
-        targetSize = currentSize / 1.1 -- Kembali ke ukuran normal
-        tweenInfoToUse = scaleDownInfo
-        item.ZIndex = 1
-    end
-
-    local scaleTween = TweenService:Create(item, tweenInfoToUse, {Size = targetSize})
-    scaleTween:Play()
-end
-
--- Function for item click effect & selection
-local function onItemClick(item)
-    -- Efek klik visual
-    local originalSize = item.Size
-    local clickTweenDown = TweenService:Create(item, clickInfo, {Size = originalSize * 0.9})
-    local clickTweenUp = TweenService:Create(item, clickInfo, {Size = originalSize})
-
-    clickTweenDown:Play()
-    clickTweenDown.Completed:Wait()
-    clickTweenUp:Play()
-
-    -- Logika pemilihan item
-    if selectedItem then
-        -- Reset tampilan item yang sebelumnya dipilih (jika ada)
-        -- Misalnya, reset border atau background color
-        selectedItem.BorderSizePixel = 0
-    end
-
-    selectedItem = item
-    -- Tandai item yang dipilih (misalnya dengan border)
-    item.BorderSizePixel = 2
-    item.BorderColor3 = Color3.fromRGB(255, 255, 0) -- Kuning sebagai contoh
-
-    print(item.Name .. " dipilih!")
-
-    -- Tampilkan dan animasikan tombol Equip
-    if menuIsOpen then
-        equipButton.Visible = true
-        equipButton.BackgroundTransparency = 1
-        equipButton.Position = UDim2.new(0.5, 0, 0.85, 0)
-        local equipAppearTween = TweenService:Create(equipButton, fadeInInfo, {
-            Position = UDim2.new(0.5, 0, 0.8, 0),
-            BackgroundTransparency = 0 -- Sesuaikan
-        })
-        equipAppearTween:Play()
-    end
-end
-
--- Function for EquipButton click
-local function onEquipClick()
-    if selectedItem then
-        print("Meng-equip: " .. selectedItem.Name)
-        -- Tambahkan logika equip di sini
-        -- Misalnya, memberitahu server, mengubah tampilan karakter, dll.
-
-        -- Setelah equip, mungkin tutup menu atau reset pilihan
-        selectedItem.BorderSizePixel = 0
-        selectedItem = nil
-        equipButton.Visible = false
-        -- toggleMenu() -- Opsional: tutup menu setelah equip
-    else
-        print("Tidak ada item yang dipilih untuk di-equip.")
-    end
-end
-
-
--- Event Connections
-toggleButton.MouseButton1Click:Connect(toggleMenu)
-
-if uiCloseButton then
-    uiCloseButton.MouseButton1Click:Connect(toggleMenu)
-end
-
-for _, itemButton in ipairs(itemButtons) do
-    itemButton.MouseEnter:Connect(function()
-        onItemHover(itemButton, true)
-    end)
-    itemButton.MouseLeave:Connect(function()
-        onItemHover(itemButton, false)
-    end)
-    itemButton.MouseButton1Click:Connect(function()
-        onItemClick(itemButton)
-    end)
-end
-
-equipButton.MouseButton1Click:Connect(onEquipClick)
-
--- Inisialisasi: Sembunyikan menu saat game dimulai
-menuBackground.Visible = false
-equipButton.Visible = false
-menuBackground.BackgroundTransparency = 1
-equipButton.BackgroundTransparency = 1
-for _, item in ipairs(itemButtons) do
-    item.ImageTransparency = 1
-    item.BackgroundTransparency = 1
-end
+local footerText = Instance.new("TextLabel")
+footerText.Name = "FooterText"
+footerText.Size = UDim2.new(1, 0, 1, 0)
+footerText.BackgroundTransparency = 1
+footerText.Font = Enum.Font.SourceSansLight
+footerText.TextColor3 = Color3.fromRGB(150, 150, 150)
+footerText.TextSize = 12
+footerText.Text = "Daizz Duper X © 2025 | VIP Build #8271 | discord.gg/daizz"
+footerText.Parent = footerFrame
