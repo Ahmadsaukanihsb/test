@@ -3,7 +3,7 @@ local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService") 
-local ReplicatedStorage = game:GetService("ReplicatedStorage") 
+local ReplicatedStorage = game:GetService("ReplicatedStorage") -- Keep for other potential uses, but pet search will be limited
 local UserInputService = game:GetService("UserInputService") -- For hover effects
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -46,8 +46,8 @@ local FONT_SECONDARY = Enum.Font.Gotham
 local FONT_BOLD = Enum.Font.GothamBold 
 
 
--- Recursive function to search for valid pets deeply within parentInstance
-local function searchRecursivelyForPet(parentInstance, pathPrefix)
+-- Recursive function to search for valid pets deeply within a given parentInstance
+local function searchRecursivelyInParent(parentInstance, pathPrefix)
     pathPrefix = pathPrefix or parentInstance.Name
     if not parentInstance then return nil end
 
@@ -59,8 +59,9 @@ local function searchRecursivelyForPet(parentInstance, pathPrefix)
                 return child
             end
         end
-        if child:IsA("Model") or child:IsA("Folder") then 
-            local foundPetInChild = searchRecursivelyForPet(child, currentPath)
+        -- Only recurse into Models if a pet might be a complex Model containing the actual Tool/Model pet
+        if child:IsA("Model") then 
+            local foundPetInChild = searchRecursivelyInParent(child, currentPath)
             if foundPetInChild then
                 return foundPetInChild
             end
@@ -69,13 +70,13 @@ local function searchRecursivelyForPet(parentInstance, pathPrefix)
     return nil
 end
 
--- Function to check if there is a valid pet (held or in ReplicatedStorage)
-local function findFirstValidPet()
+-- Function to check if the player is currently holding a valid pet
+local function findCurrentlyHeldPet()
     if not player then
         print("--- DEBUG: Local player not found, search canceled. ---")
         return nil
     end
-    print("--- DEBUG: Starting search for valid pets... ---")
+    print("--- DEBUG: Starting search for HELD pets... ---")
     
     local character = player.Character
     if not character then
@@ -83,6 +84,7 @@ local function findFirstValidPet()
         character = player.CharacterAdded:Wait() 
         if not character then
              print("--- DEBUG: Player character not found even after waiting for CharacterAdded. ---")
+             return nil
         else
             print("--- DEBUG: Player character now found after CharacterAdded:", character.Name, "---")
         end
@@ -90,24 +92,16 @@ local function findFirstValidPet()
     
     if character and character:IsDescendantOf(game) then
         print("--- DEBUG: Checking items held by character:", character.Name, "---")
-        local petInCharacter = searchRecursivelyForPet(character, character.Name)
+        local petInCharacter = searchRecursivelyInParent(character, character.Name) -- Use the recursive search within character
         if petInCharacter then
             return petInCharacter
         end
-        print("--- DEBUG: Finished checking character. ---")
+        print("--- DEBUG: Finished checking character. No valid pet found HELD. ---")
     elseif character then
          print("--- DEBUG: Player character is no longer a descendant of game. May be destroying. ---")
     end
 
-    print("--- DEBUG: Checking ReplicatedStorage ---")
-    local petInReplicatedStorage = searchRecursivelyForPet(ReplicatedStorage, "ReplicatedStorage")
-    if petInReplicatedStorage then
-        print("--- DEBUG: Valid pet found in ReplicatedStorage:", petInReplicatedStorage.Name, "---")
-        return petInReplicatedStorage
-    end
-    print("--- DEBUG: No valid pet found in ReplicatedStorage. ---")
-
-    print("--- DEBUG: No valid pet found after all checks. ---")
+    print("--- DEBUG: No valid pet found HELD after all checks. ---")
     return nil
 end
 
@@ -364,7 +358,7 @@ local function createMainGui()
         if visible then
             mainFrame.Visible = true
             mainFrame.Position = UDim2.new(0.5, 0, 0.45, 0) 
-            mainFrame.BackgroundTransparency = 0.5 -- Start semi-transparent for fade-in
+            mainFrame.BackgroundTransparency = 0.5 
             local grad = mainFrame:FindFirstChildOfClass("UIGradient")
             if grad then grad.Transparency = NumberSequence.new(0.5) end
 
@@ -425,7 +419,7 @@ local function createMainGui()
             
             task.wait(0.7) 
 
-            local foundPet = findFirstValidPet() 
+            local foundPet = findCurrentlyHeldPet() -- Menggunakan fungsi yang hanya mencari pet yang dipegang
 
             if foundPet then
                 print("--- DEBUG: Valid pet found by 'Try Again' button:", foundPet.Name, "---")
@@ -437,7 +431,7 @@ local function createMainGui()
                 setupButtonHover(tryAgainButton, PALETTE.SuccessHover, PALETTE.Success)
                 currentPetActionState = "DUPE_PROCESS"
             else
-                print("--- DEBUG: No valid pet held or found in ReplicatedStorage (from 'Try Again' button). ---")
+                print("--- DEBUG: No valid pet HELD (from 'Try Again' button). ---") -- Pesan debug disesuaikan
                 animateStatusTextChange("Required pet not found", PALETTE.Error, "X", PALETTE.Error)
                 playShakeAnimation(errorContainer) 
                 
