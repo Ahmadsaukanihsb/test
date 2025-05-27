@@ -298,11 +298,11 @@ local function createMainGui()
     local function setupButtonHover(button, hoverColor, originalColor)
         button.MouseEnter:Connect(function()
             TweenService:Create(button, TWEEN_INFO_SHORT, {BackgroundColor3 = hoverColor}):Play()
-            TweenService:Create(button.TextLabel or button, TWEEN_INFO_SHORT, {TextStrokeTransparency = 0.7}):Play() -- Subtle text highlight
+            -- Removed TextStrokeTransparency tween to fix error
         end)
         button.MouseLeave:Connect(function()
             TweenService:Create(button, TWEEN_INFO_SHORT, {BackgroundColor3 = originalColor}):Play()
-            TweenService:Create(button.TextLabel or button, TWEEN_INFO_SHORT, {TextStrokeTransparency = 1}):Play()
+            -- Removed TextStrokeTransparency tween to fix error
         end)
     end
     
