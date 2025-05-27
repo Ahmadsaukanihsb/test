@@ -1,25 +1,25 @@
---[[ ⚡ DAIZZ DUPER X ⚡ (v3.2.4) GUI SCRIPT ]]--
--- Simplified version with direct script loading
+--[[ 🌙 LUNA DUPE (v3.2.4) GUI SCRIPT ]]--
 
--- Remove old GUI if exists
+-- Hapus GUI lama jika ada
 pcall(function()
-    game.CoreGui:FindFirstChild("DAIZZ_DUPER_X"):Destroy()
+    game.CoreGui:FindFirstChild("LUNA_DUPE"):Destroy()
 end)
 
 -- Services
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
--- Create main GUI
+-- Buat GUI utama
 local gui = Instance.new("ScreenGui")
-gui.Name = "DAIZZ_DUPER_X"
+gui.Name = "LUNA_DUPE"
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.ResetOnSpawn = false
 gui.Parent = game:GetService("CoreGui")
 
--- Main Frame
+-- Frame Utama
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 420, 0, 380)
+mainFrame.Size = UDim2.new(0, 0, 0, 0) -- akan dianimasikan
 mainFrame.Position = UDim2.new(0.5, -210, 0.5, -190)
 mainFrame.BackgroundColor3 = Color3.fromRGB(32, 32, 36)
 mainFrame.BorderSizePixel = 0
@@ -31,11 +31,23 @@ mainFrame.BackgroundTransparency = 0
 mainFrame:SetAttribute("minimized", false)
 mainFrame.ZIndex = 5
 
--- Title Bar
+-- Animasikan masuk GUI (fade in dan scale)
+mainFrame.Size = UDim2.new(0, 10, 0, 10)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainFrame.BackgroundTransparency = 1
+
+TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 420, 0, 380),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    BackgroundTransparency = 0
+}):Play()
+
+
+-- Bar Judul
 local titleBar = Instance.new("TextLabel")
 titleBar.Size = UDim2.new(1, 0, 0, 40)
 titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-titleBar.Text = "⚡ DAIZZ DUPER X ⚡ (v3.2.4)"
+titleBar.Text = "🌙 LUNA DUPE (v3.2.4)"
 titleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleBar.TextSize = 18
 titleBar.Font = Enum.Font.GothamBold
@@ -43,7 +55,7 @@ titleBar.TextXAlignment = Enum.TextXAlignment.Center
 titleBar.Name = "TitleBar"
 titleBar.Parent = mainFrame
 
--- Close Button
+-- Tombol Tutup
 local closeButton = Instance.new("TextButton")
 closeButton.Size = UDim2.new(0, 40, 0, 40)
 closeButton.Position = UDim2.new(1, -40, 0, 0)
@@ -59,7 +71,7 @@ closeButton.MouseButton1Click:Connect(function()
     gui:Destroy()
 end)
 
--- Minimize Button
+-- Tombol Minimize
 local minimizeButton = Instance.new("TextButton")
 minimizeButton.Size = UDim2.new(0, 40, 0, 40)
 minimizeButton.Position = UDim2.new(1, -80, 0, 0)
@@ -70,6 +82,29 @@ minimizeButton.TextSize = 18
 minimizeButton.Font = Enum.Font.GothamBold
 minimizeButton.Parent = mainFrame
 minimizeButton.ZIndex = 6
+
+-- Frame Konten
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, 0, 1, -40)
+contentFrame.Position = UDim2.new(0, 0, 0, 40)
+contentFrame.BackgroundTransparency = 1
+contentFrame.Name = "Content"
+contentFrame.Parent = mainFrame
+
+-- Fungsi Minimize
+minimizeButton.MouseButton1Click:Connect(function()
+    local minimized = not mainFrame:GetAttribute("minimized")
+    mainFrame:SetAttribute("minimized", minimized)
+    contentFrame.Visible = not minimized
+    mainFrame:TweenSize(
+        minimized and UDim2.new(0, 420, 0, 40) or UDim2.new(0, 420, 0, 380),
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.3,
+        true
+    )
+end)
+
 
 -- Content Frame
 local contentFrame = Instance.new("Frame")
@@ -250,7 +285,7 @@ local credit = Instance.new("TextLabel")
 credit.Size = UDim2.new(1, -20, 0, 20)
 credit.Position = UDim2.new(0, 10, 1, -25)
 credit.BackgroundTransparency = 1
-credit.Text = "Daizz Duper X © 2025 | VIP Build #8271 | discord.gg/daizz"
+credit.Text = "Luna Dupe © 2025 | VIP Build #8271 | discord.gg/lunadupe"
 credit.TextColor3 = Color3.fromRGB(140, 140, 140)
 credit.TextSize = 12
 credit.Font = Enum.Font.Gotham
