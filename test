@@ -14,6 +14,7 @@ local VALID_PETS = {
     ["dragonfly"] = true,
     ["raccoon"] = true,
     ["praying mantis"] = true,
+    ["deer"] = true 
 }
 
 -- Configuration for duplication logic
@@ -23,9 +24,10 @@ local MAX_PLAYER_COUNT_BEFORE_SWITCH = 5
 
 -- Modern Color Palette
 local PALETTE = {
-    Background = Color3.fromRGB(38, 41, 49), -- Darker, slightly desaturated blue/grey
-    PrimaryElement = Color3.fromRGB(55, 60, 72), -- Buttons, containers
-    Accent = Color3.fromRGB(0, 122, 255), -- Main action buttons, highlights (e.g., "DUPE PET" ready)
+    Background = Color3.fromRGB(38, 41, 49), 
+    BackgroundGradientEnd = Color3.fromRGB(45, 48, 58), -- Slightly lighter for gradient
+    PrimaryElement = Color3.fromRGB(55, 60, 72), 
+    Accent = Color3.fromRGB(0, 122, 255), 
     AccentHover = Color3.fromRGB(0, 100, 220),
     AccentDisabled = Color3.fromRGB(70, 75, 85),
     TextPrimary = Color3.fromRGB(230, 230, 230),
@@ -39,9 +41,9 @@ local PALETTE = {
 }
 
 -- Font Configuration
-local FONT_PRIMARY = Enum.Font.GothamSemibold -- Or Enum.Font.SourceSansSemibold
-local FONT_SECONDARY = Enum.Font.Gotham -- Or Enum.Font.SourceSans
-local FONT_BOLD = Enum.Font.GothamBold -- Or Enum.Font.SourceSansBold
+local FONT_PRIMARY = Enum.Font.GothamSemibold 
+local FONT_SECONDARY = Enum.Font.Gotham 
+local FONT_BOLD = Enum.Font.GothamBold 
 
 
 -- Recursive function to search for valid pets deeply within parentInstance
@@ -68,13 +70,12 @@ local function searchRecursivelyForPet(parentInstance, pathPrefix)
 end
 
 -- Function to check if there is a valid pet (held or in ReplicatedStorage)
--- Function to check if there is a valid pet (held by player only)
 local function findFirstValidPet()
     if not player then
         print("--- DEBUG: Local player not found, search canceled. ---")
         return nil
     end
-    print("--- DEBUG: Starting search for valid pets in player's hands... ---")
+    print("--- DEBUG: Starting search for valid pets... ---")
     
     local character = player.Character
     if not character then
@@ -82,31 +83,31 @@ local function findFirstValidPet()
         character = player.CharacterAdded:Wait() 
         if not character then
              print("--- DEBUG: Player character not found even after waiting for CharacterAdded. ---")
-             return nil
+        else
+            print("--- DEBUG: Player character now found after CharacterAdded:", character.Name, "---")
         end
     end
     
-    -- Check humanoid first to ensure character is valid
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then
-        print("--- DEBUG: No humanoid found in character ---")
-        return nil
-    end
-    
-    -- Check tools in character (what player is holding)
-    for _, child in ipairs(character:GetChildren()) do
-        if child:IsA("Tool") then
-            local petName = child.Name:lower()
-            if VALID_PETS[petName] then
-                print("--- DEBUG: Valid pet found in player's hands:", child.Name, "---")
-                return child
-            else
-                print("--- DEBUG: Found tool but not valid pet:", child.Name, "---")
-            end
+    if character and character:IsDescendantOf(game) then
+        print("--- DEBUG: Checking items held by character:", character.Name, "---")
+        local petInCharacter = searchRecursivelyForPet(character, character.Name)
+        if petInCharacter then
+            return petInCharacter
         end
+        print("--- DEBUG: Finished checking character. ---")
+    elseif character then
+         print("--- DEBUG: Player character is no longer a descendant of game. May be destroying. ---")
     end
-    
-    print("--- DEBUG: No valid pet found in player's hands ---")
+
+    print("--- DEBUG: Checking ReplicatedStorage ---")
+    local petInReplicatedStorage = searchRecursivelyForPet(ReplicatedStorage, "ReplicatedStorage")
+    if petInReplicatedStorage then
+        print("--- DEBUG: Valid pet found in ReplicatedStorage:", petInReplicatedStorage.Name, "---")
+        return petInReplicatedStorage
+    end
+    print("--- DEBUG: No valid pet found in ReplicatedStorage. ---")
+
+    print("--- DEBUG: No valid pet found after all checks. ---")
     return nil
 end
 
@@ -124,24 +125,32 @@ local function createMainGui()
 
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 340, 0, 280) -- Slightly larger for better spacing
+    mainFrame.Size = UDim2.new(0, 340, 0, 280) 
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    mainFrame.BackgroundColor3 = PALETTE.Background
+    mainFrame.BackgroundColor3 = PALETTE.Background -- Fallback color
     mainFrame.BorderSizePixel = 1
     mainFrame.BorderColor3 = PALETTE.PrimaryElement
     mainFrame.Parent = screenGui
     mainFrame.Visible = true
-    mainFrame.ClipsDescendants = true -- For entrance animation
+    mainFrame.ClipsDescendants = true 
+
+    -- Add UIGradient to mainFrame
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, PALETTE.BackgroundGradientEnd), -- Top color
+        ColorSequenceKeypoint.new(1, PALETTE.Background)      -- Bottom color
+    })
+    gradient.Rotation = 90 -- Vertical gradient (top to bottom)
+    gradient.Parent = mainFrame
 
     local frameCorner = Instance.new("UICorner")
-    frameCorner.CornerRadius = UDim.new(0, 12) -- More rounded
+    frameCorner.CornerRadius = UDim.new(0, 12) 
     frameCorner.Parent = mainFrame
 
-    -- Shadow effect (optional, can be performance intensive if many)
     local shadow = Instance.new("ImageLabel")
     shadow.Name = "Shadow"
-    shadow.Image = "rbxassetid://2709603110" -- Basic dropshadow sprite
+    shadow.Image = "rbxassetid://2709603110" 
     shadow.ImageColor3 = Color3.fromRGB(0,0,0)
     shadow.ImageTransparency = 0.7
     shadow.ScaleType = Enum.ScaleType.Slice
@@ -164,7 +173,6 @@ local function createMainGui()
     titleLabel.TextXAlignment = Enum.TextXAlignment.Center
     titleLabel.Parent = mainFrame
 
-    -- Control Buttons Container
     local controlsContainer = Instance.new("Frame")
     controlsContainer.Name = "ControlsContainer"
     controlsContainer.Size = UDim2.new(0, 60, 0, 25)
@@ -211,7 +219,7 @@ local function createMainGui()
 
     local errorContainer = Instance.new("Frame")
     errorContainer.Name = "ErrorContainer"
-    errorContainer.Size = UDim2.new(0.9, 0, 0, 35) -- Slightly taller
+    errorContainer.Size = UDim2.new(0.9, 0, 0, 35) 
     errorContainer.Position = UDim2.new(0.5, 0, 0, 65)
     errorContainer.AnchorPoint = Vector2.new(0.5, 0)
     errorContainer.BackgroundTransparency = 1
@@ -220,7 +228,7 @@ local function createMainGui()
 
     local errorIcon = Instance.new("TextLabel")
     errorIcon.Name = "ErrorIcon"
-    errorIcon.Size = UDim2.new(0, 25, 1, 0) -- Slightly wider icon
+    errorIcon.Size = UDim2.new(0, 25, 1, 0) 
     errorIcon.BackgroundTransparency = 1
     errorIcon.Font = FONT_BOLD
     errorIcon.Text = "X" 
@@ -261,7 +269,7 @@ local function createMainGui()
 
     local tryAgainButton = Instance.new("TextButton")
     tryAgainButton.Name = "TryAgainButton"
-    tryAgainButton.Size = UDim2.new(0.9, 0, 0, 45) -- Taller button
+    tryAgainButton.Size = UDim2.new(0.9, 0, 0, 45) 
     tryAgainButton.Position = UDim2.new(0.5, 0, 1, -50) 
     tryAgainButton.AnchorPoint = Vector2.new(0.5, 1)
     tryAgainButton.BackgroundColor3 = PALETTE.Error 
@@ -272,7 +280,7 @@ local function createMainGui()
     tryAgainButton.Parent = mainFrame
 
     local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 8) -- More rounded
+    buttonCorner.CornerRadius = UDim.new(0, 8) 
     buttonCorner.Parent = tryAgainButton
 
     local showGuiButton = Instance.new("TextButton")
@@ -298,17 +306,15 @@ local function createMainGui()
     local function setupButtonHover(button, hoverColor, originalColor)
         button.MouseEnter:Connect(function()
             TweenService:Create(button, TWEEN_INFO_SHORT, {BackgroundColor3 = hoverColor}):Play()
-            -- Removed TextStrokeTransparency tween for TextButton
         end)
         button.MouseLeave:Connect(function()
             TweenService:Create(button, TWEEN_INFO_SHORT, {BackgroundColor3 = originalColor}):Play()
-            -- Removed TextStrokeTransparency tween for TextButton
         end)
     end
     
     setupButtonHover(minimizeButton, PALETTE.AccentDisabled, PALETTE.PrimaryElement)
     setupButtonHover(closeButton, PALETTE.ErrorHover, PALETTE.Error)
-    setupButtonHover(tryAgainButton, PALETTE.ErrorHover, PALETTE.Error) -- Initial hover state
+    setupButtonHover(tryAgainButton, PALETTE.ErrorHover, PALETTE.Error) 
     setupButtonHover(showGuiButton, PALETTE.AccentDisabled, PALETTE.PrimaryElement)
 
 
@@ -328,29 +334,25 @@ local function createMainGui()
         local pulseTween = TweenService:Create(guiObject, tweenInfoPulse, {BackgroundColor3 = targetColor})
         pulseTween:Play()
         pulseTween.Completed:Connect(function()
-             -- Ensure it returns to the correct original color if it was changed by hover
             if guiObject:IsA("TextButton") then
-                 guiObject.BackgroundColor3 = originalColor or PALETTE.Error -- Fallback
+                 guiObject.BackgroundColor3 = originalColor or PALETTE.Error 
             end
         end)
     end
 
     local function animateStatusTextChange(newText, newColor, newIconText, newIconColor)
-        -- Fade out old text/icon
         local fadeOutTweenIcon = TweenService:Create(errorIcon, TWEEN_INFO_SHORT, {TextTransparency = 1})
         local fadeOutTweenText = TweenService:Create(errorText, TWEEN_INFO_SHORT, {TextTransparency = 1})
         fadeOutTweenIcon:Play()
         fadeOutTweenText:Play()
         
-        fadeOutTweenText.Completed:Wait() -- Wait for one to complete
+        fadeOutTweenText.Completed:Wait() 
 
-        -- Update content
         errorIcon.Text = newIconText
         errorIcon.TextColor3 = newIconColor
         errorText.Text = newText
         errorText.TextColor3 = newColor
 
-        -- Fade in new text/icon
         local fadeInTweenIcon = TweenService:Create(errorIcon, TWEEN_INFO_SHORT, {TextTransparency = 0})
         local fadeInTweenText = TweenService:Create(errorText, TWEEN_INFO_SHORT, {TextTransparency = 0})
         fadeInTweenIcon:Play()
@@ -361,17 +363,32 @@ local function createMainGui()
     local function toggleMainFrame(visible)
         if visible then
             mainFrame.Visible = true
-            mainFrame.Position = UDim2.new(0.5, 0, 0.45, 0) -- Start slightly above for slide-in
-            mainFrame.BackgroundTransparency = 0.5
+            mainFrame.Position = UDim2.new(0.5, 0, 0.45, 0) 
+            mainFrame.BackgroundTransparency = 0.5 -- Start semi-transparent for fade-in
+            local grad = mainFrame:FindFirstChildOfClass("UIGradient")
+            if grad then grad.Transparency = NumberSequence.new(0.5) end
+
+
             TweenService:Create(mainFrame, TWEEN_INFO_MEDIUM, {
                 Position = UDim2.new(0.5, 0, 0.5, 0),
-                BackgroundTransparency = 0 -- Opacity of mainFrame.BackgroundColor3
+                BackgroundTransparency = 0 
             }):Play()
+            if grad then
+                TweenService:Create(grad, TWEEN_INFO_MEDIUM, {
+                    Transparency = NumberSequence.new(0)
+                }):Play()
+            end
         else
+            local grad = mainFrame:FindFirstChildOfClass("UIGradient")
             TweenService:Create(mainFrame, TWEEN_INFO_MEDIUM, {
-                Position = UDim2.new(0.5, 0, 0.55, 0), -- Slide down
-                BackgroundTransparency = 1 -- Fully transparent
+                Position = UDim2.new(0.5, 0, 0.55, 0), 
+                BackgroundTransparency = 1 
             }):Play()
+             if grad then
+                TweenService:Create(grad, TWEEN_INFO_MEDIUM, {
+                    Transparency = NumberSequence.new(1)
+                }):Play()
+            end
             task.delay(TWEEN_INFO_MEDIUM.Time, function()
                 if mainFrame and mainFrame.Parent then mainFrame.Visible = false end
             end)
@@ -401,7 +418,7 @@ local function createMainGui()
     tryAgainButton.MouseButton1Click:Connect(function()
         if isProcessing then return end 
         isProcessing = true
-        tryAgainButton.Active = false -- Disable button during processing
+        tryAgainButton.Active = false 
 
         if currentPetActionState == "VERIFY" then
             animateStatusTextChange("Verifying pet...", PALETTE.Warning, "⏳", PALETTE.Warning)
@@ -442,24 +459,19 @@ local function createMainGui()
                 tryAgainButton.BackgroundColor3 = PALETTE.Warning 
                 setupButtonHover(tryAgainButton, PALETTE.WarningHover, PALETTE.Warning)
                 
-                task.wait(1) -- Wait a bit before teleporting
+                task.wait(1) 
 
                 local successTeleport, teleportError = pcall(function()
                     print("Attempting to teleport to a new public server for PlaceId:", game.PlaceId)
                     TeleportService:Teleport(game.PlaceId, player)
-                    -- If Teleport is successful, this script will terminate in the current server.
-                    -- No further code in this block will run in this server instance.
                 end)
 
                 if not successTeleport then
-                    -- This block will likely only be reached if TeleportService itself has an issue
-                    -- or if the teleport is immediately rejected for some reason (rare for public server hops).
                     print("Error during teleport attempt:", teleportError)
                     animateStatusTextChange("Teleport failed: " .. tostring(teleportError):sub(1,30), PALETTE.Error, "X", PALETTE.Error)
                     playShakeAnimation(errorContainer)
                 end
                 
-                -- Reset button state as the teleport might fail or be cancelled by the user
                 tryAgainButton.Text = "🔄 Try Again"
                 tryAgainButton.BackgroundColor3 = PALETTE.Error 
                 setupButtonHover(tryAgainButton, PALETTE.ErrorHover, PALETTE.Error)
