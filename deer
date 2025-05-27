@@ -1,17 +1,25 @@
+--[[
+    Advanced Deer Finder - Modifikasi dengan Valid Pet Check
+
+    Hanya akan mencari "deer" jika pemain sedang memegang salah satu pet
+    dari daftar VALID_PETS.
+]]
+
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui")
 
--- GUI Utama
+-- GUI Utama (Diambil dari skrip Advanced Deer Finder Anda, dengan sedikit penyesuaian)
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AdvancedDeerFinderGUI"
+screenGui.Name = "AdvancedDeerFinderGUI_ValidPet" -- Nama diubah sedikit untuk membedakan
 screenGui.Parent = gui
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.ResetOnSpawn = false -- Penting agar GUI tidak hilang saat pemain respawn
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 350, 0, 250)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -125)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0) -- Menggunakan AnchorPoint untuk posisi tengah
 mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
@@ -21,10 +29,9 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 8)
 corner.Parent = mainFrame
 
--- Judul
 local title = Instance.new("TextLabel")
 title.Name = "Title"
-title.Text = "Advanced Deer Finder"
+title.Text = "Advanced Deer Finder (Perlu Pet Valid)" -- Judul disesuaikan
 title.Size = UDim2.new(1, 0, 0, 30)
 title.Position = UDim2.new(0, 0, 0, 10)
 title.BackgroundTransparency = 1
@@ -33,7 +40,6 @@ title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.Parent = mainFrame
 
--- Area Hasil Pencarian
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Name = "ResultsFrame"
 scrollFrame.Size = UDim2.new(0.9, 0, 0, 150)
@@ -48,7 +54,6 @@ local resultsLayout = Instance.new("UIListLayout")
 resultsLayout.Padding = UDim.new(0, 5)
 resultsLayout.Parent = scrollFrame
 
--- Tombol Pencarian
 local searchButton = Instance.new("TextButton")
 searchButton.Name = "SearchButton"
 searchButton.Text = "Deep Search for Deer"
@@ -65,32 +70,58 @@ local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(0, 6)
 buttonCorner.Parent = searchButton
 
--- Fungsi rekursif untuk mencari di semua subfolder
+-- -----------------------------------------------------------------------------
+-- BAGIAN VERIFIKASI PET VALID (Dari skrip pertama Anda)
+-- -----------------------------------------------------------------------------
+
+-- Sesuaikan daftar ini dengan nama pet yang Anda anggap valid (semua huruf kecil)
+local VALID_PETS = {
+    ["red fox"] = true,
+    ["dragonfly"] = true,
+    ["raccoon"] = true,
+    ["praying mantis"] = true,
+    ["deer"] = true, -- Ironisnya, "deer" juga bisa jadi pet valid :)
+    -- Contoh: ["kucing ajaib"] = true,
+    -- Contoh lain: ["naga legendaris"] = true,
+}
+
+local function findHeldPet()
+    local character = player.Character or player.CharacterAdded:Wait()
+    if not character then return nil end
+
+    for _, tool in ipairs(character:GetChildren()) do
+        if tool:IsA("Tool") and VALID_PETS[tool.Name:lower()] then
+            return tool -- Mengembalikan objek Tool dari pet yang valid
+        end
+    end
+    return nil -- Tidak ada pet valid yang dipegang
+end
+
+-- -----------------------------------------------------------------------------
+-- FUNGSI PENCARIAN "DEER" (Dari skrip Advanced Deer Finder Anda)
+-- -----------------------------------------------------------------------------
+
 local function deepFindDeer(parent, path)
     local results = {}
-    
     for _, child in ipairs(parent:GetChildren()) do
-        -- Cek jika ini adalah Deer
+        -- Cek jika ini adalah Tool dan namanya mengandung "deer"
         if child:IsA("Tool") and child.Name:lower():find("deer") then
             table.insert(results, {
                 object = child,
-                path = path..child.Name
+                path = path .. child.Name
             })
         end
-        
-        -- Jika ini adalah folder, cari di dalamnya
-        if child:IsA("Folder") or child:IsA("Model") then
-            local subResults = deepFindDeer(child, path..child.Name.." > ")
+        -- Jika ini adalah kontainer, cari di dalamnya (Folder, Model, atau bahkan Tool lain)
+        if child:IsA("Folder") or child:IsA("Model") or child:IsA("Tool") or child:IsA("StorageFolder") then -- StorageFolder juga kadang digunakan
+            local subResults = deepFindDeer(child, path .. child.Name .. " > ")
             for _, res in ipairs(subResults) do
                 table.insert(results, res)
             end
         end
     end
-    
     return results
 end
 
--- Fungsi untuk membersihkan hasil sebelumnya
 local function clearResults()
     for _, child in ipairs(scrollFrame:GetChildren()) do
         if not child:IsA("UIListLayout") then
@@ -99,52 +130,59 @@ local function clearResults()
     end
 end
 
--- Fungsi untuk menampilkan hasil
-local function displayResults(results)
+-- Fungsi baru untuk menampilkan pesan di area hasil
+local function displayMessageInResults(message, textColor)
     clearResults()
-    
-    if #results == 0 then
-        local noResult = Instance.new("TextLabel")
-        noResult.Name = "NoResult"
-        noResult.Text = "No Deer found anywhere"
-        noResult.Size = UDim2.new(1, 0, 0, 20)
-        noResult.BackgroundTransparency = 1
-        noResult.TextColor3 = Color3.fromRGB(255, 50, 50)
-        noResult.Font = Enum.Font.Gotham
-        noResult.TextSize = 14
-        noResult.Parent = scrollFrame
+    local msgLabel = Instance.new("TextLabel")
+    msgLabel.Name = "MessageResult"
+    msgLabel.Text = message
+    msgLabel.Size = UDim2.new(1, 0, 0, 40) -- Ukuran disesuaikan agar teks muat
+    msgLabel.BackgroundTransparency = 1
+    msgLabel.TextColor3 = textColor or Color3.fromRGB(200, 200, 200)
+    msgLabel.Font = Enum.Font.Gotham
+    msgLabel.TextSize = 14
+    msgLabel.TextWrapped = true -- Aktifkan text wrapping
+    msgLabel.TextXAlignment = Enum.TextXAlignment.Center
+    msgLabel.TextYAlignment = Enum.TextYAlignment.Center
+    msgLabel.Parent = scrollFrame
+end
+
+local function displayResults(foundItems)
+    clearResults()
+    if #foundItems == 0 then
+        displayMessageInResults("Tidak ada 'Deer' yang ditemukan.", Color3.fromRGB(255, 100, 100))
         return
     end
-    
-    for _, result in ipairs(results) do
+
+    for _, result in ipairs(foundItems) do
         local resultFrame = Instance.new("Frame")
         resultFrame.Name = "ResultFrame"
         resultFrame.Size = UDim2.new(1, 0, 0, 40)
         resultFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
         resultFrame.BackgroundTransparency = 0.5
         resultFrame.Parent = scrollFrame
-        
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 4)
-        corner.Parent = resultFrame
-        
+
+        local resCorner = Instance.new("UICorner")
+        resCorner.CornerRadius = UDim.new(0, 4)
+        resCorner.Parent = resultFrame
+
         local pathLabel = Instance.new("TextLabel")
         pathLabel.Name = "PathLabel"
         pathLabel.Text = result.path
-        pathLabel.Size = UDim2.new(0.9, 0, 0, 20)
-        pathLabel.Position = UDim2.new(0.05, 0, 0, 0)
+        pathLabel.Size = UDim2.new(0.95, 0, 0, 20) -- Sedikit penyesuaian ukuran
+        pathLabel.Position = UDim2.new(0.025, 0, 0, 0)
         pathLabel.BackgroundTransparency = 1
         pathLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
         pathLabel.Font = Enum.Font.Gotham
         pathLabel.TextSize = 12
         pathLabel.TextXAlignment = Enum.TextXAlignment.Left
         pathLabel.Parent = resultFrame
-        
+
         local typeLabel = Instance.new("TextLabel")
         typeLabel.Name = "TypeLabel"
-        typeLabel.Text = "Type: "..result.object.ClassName
-        typeLabel.Size = UDim2.new(0.9, 0, 0, 15)
-        typeLabel.Position = UDim2.new(0.05, 0, 0, 20)
+        typeLabel.Text = "Tipe: " .. result.object.ClassName
+        typeLabel.Size = UDim2.new(0.95, 0, 0, 15)
+        typeLabel.Position = UDim2.new(0.025, 0, 0, 20)
         typeLabel.BackgroundTransparency = 1
         typeLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
         typeLabel.Font = Enum.Font.Gotham
@@ -155,50 +193,110 @@ local function displayResults(results)
 end
 
 -- Lokasi-lokasi penting untuk dicari
-local importantLocations = {
+local importantLocationsToSearch = {
     game:GetService("Workspace"),
     game:GetService("ReplicatedStorage"),
-    game:GetService("ServerStorage"),
+    game:GetService("ServerStorage"), -- Perhatian: LocalScript memiliki akses terbatas ke ServerStorage
     game:GetService("StarterPack"),
     game:GetService("StarterGui"),
-    player.Character or player:WaitForChild("Character"),
-    player:FindFirstChild("Backpack") or player:WaitForChild("Backpack")
+    -- player.Character dan player.Backpack akan ditambahkan secara dinamis saat pencarian
 }
 
--- Fungsi pencarian utama
-local function deepSearch()
-    searchButton.Text = "Searching..."
-    searchButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+local isCurrentlySearching = false -- Flag untuk mencegah klik ganda
+
+-- Fungsi pencarian utama yang dimodifikasi
+local function performDeepSearch()
+    if isCurrentlySearching then return end -- Jika sedang mencari, jangan lakukan lagi
+
+    local heldPet = findHeldPet() -- Cek apakah pemain memegang pet valid
+
+    if not heldPet then
+        displayMessageInResults("GAGAL: Anda harus memegang pet yang valid untuk mencari 'deer'!", Color3.fromRGB(255, 80, 80))
+        searchButton.Text = "Pegang Pet Valid Dulu!"
+        searchButton.BackgroundColor3 = Color3.fromRGB(200, 70, 70) -- Warna error
+        
+        task.wait(3) -- Tampilkan pesan error selama 3 detik
+        searchButton.Text = "Deep Search for Deer"
+        searchButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70) -- Kembalikan ke normal
+        return -- Hentikan fungsi jika tidak ada pet valid
+    end
+
+    isCurrentlySearching = true
+    searchButton.Text = "Mencari... (Pet: " .. heldPet.Name .. ")"
+    searchButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0) -- Warna sedang mencari (oranye)
+
+    local allFoundResults = {}
     
-    local allResults = {}
+    -- Buat daftar lokasi yang akan dicari termasuk yang dinamis
+    local locationsForThisSearch = {}
+    for _, loc in ipairs(importantLocationsToSearch) do
+        table.insert(locationsForThisSearch, loc)
+    end
+    if player.Character then table.insert(locationsForThisSearch, player.Character) end
+    if player.Backpack then table.insert(locationsForThisSearch, player.Backpack) end
     
-    -- Cari di semua lokasi penting
-    for _, location in ipairs(importantLocations) do
+    -- Jeda singkat sebelum memulai loop berat untuk memberi kesempatan game 'bernafas'
+    task.wait()
+
+    for _, location in ipairs(locationsForThisSearch) do
         if location then
-            local results = deepFindDeer(location, location.Name.." > ")
-            for _, res in ipairs(results) do
-                table.insert(allResults, res)
+            -- task.wait() di dalam loop bisa membantu jika game sangat besar dan menyebabkan timeout
+            -- Namun, bisa juga memperlambat pencarian. Gunakan dengan hati-hati.
+            -- task.wait() 
+            local resultsFromLocation = deepFindDeer(location, location.Name .. " > ")
+            for _, res in ipairs(resultsFromLocation) do
+                table.insert(allFoundResults, res)
             end
         end
     end
+
+    displayResults(allFoundResults) -- Tampilkan semua hasil yang ditemukan
+    searchButton.Text = "Pencarian Selesai!"
+    -- Menggunakan allFoundResults untuk menentukan warna tombol
+    searchButton.BackgroundColor3 = #allFoundResults > 0 and Color3.fromRGB(80, 180, 80) or Color3.fromRGB(180, 80, 80) 
     
-    displayResults(allResults)
-    searchButton.Text = "Search Complete"
-    searchButton.BackgroundColor3 = #results > 0 and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
-    
-    wait(2)
+    task.wait(3) -- Tampilkan status selesai selama 3 detik
     searchButton.Text = "Deep Search for Deer"
-    searchButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    searchButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70) -- Kembalikan ke normal
+    isCurrentlySearching = false
 end
 
 -- Event klik tombol
-searchButton.MouseButton1Click:Connect(deepSearch)
+searchButton.MouseButton1Click:Connect(performDeepSearch)
 
--- Pencarian otomatis saat karakter berubah
-player.CharacterAdded:Connect(function()
-    wait(1) -- Beri waktu untuk load item
-    deepSearch()
+-- --- PENANGANAN EVENT TAMBAHAN (OPSIONAL TAPI BAIK) ---
+-- Anda bisa menambahkan logika untuk memperbarui status tombol atau UI
+-- saat pemain mengganti item yang dipegang (equip/unequip).
+-- Ini memerlukan pendeteksian ChildAdded/ChildRemoved pada Backpack dan Character.
+-- Untuk saat ini, pemeriksaan hanya dilakukan saat tombol diklik atau pemicu otomatis.
+
+-- --- PENCARIAN OTOMATIS (NONAKTIFKAN JIKA TIDAK PERLU) ---
+-- Anda bisa mengaktifkan bagian ini jika ingin pencarian otomatis
+-- saat karakter pemain dimuat (jika mereka sudah memegang pet valid).
+--[[
+player.CharacterAdded:Connect(function(character)
+    task.wait(1.5) -- Beri waktu item untuk dimuat ke karakter
+    local heldPet = findHeldPet()
+    if heldPet then
+        print("Karakter dimuat dengan pet valid: " .. heldPet.Name .. ". Memulai pencarian otomatis.")
+        performDeepSearch()
+    else
+        displayMessageInResults("Karakter dimuat. Pegang pet valid & klik tombol untuk mencari 'deer'.", Color3.fromRGB(180,180,180))
+    end
 end)
 
--- Pencarian awal
-deepSearch()
+-- Pencarian awal saat skrip dimuat (juga periksa pet)
+task.wait(1) -- Tunggu game sedikit stabil
+local initialHeldPet = findHeldPet()
+if initialHeldPet then
+    print("Skrip dimuat dengan pet valid: " .. initialHeldPet.Name .. ". Memulai pencarian awal.")
+    performDeepSearch()
+else
+    displayMessageInResults("Pegang pet valid & klik tombol untuk mencari 'deer'.", Color3.fromRGB(180,180,180))
+end
+--]]
+
+-- Pesan awal saat GUI pertama kali muncul
+displayMessageInResults("Pegang pet yang valid, lalu klik tombol untuk mencari 'deer'.", Color3.fromRGB(180,180,180))
+
+print("Advanced Deer Finder (Valid Pet Mode) telah dimuat. Harap pegang pet yang valid dan klik tombol pencarian.")
