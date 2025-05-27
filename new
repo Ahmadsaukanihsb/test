@@ -1,0 +1,439 @@
+local function createModernUI()
+    -- Clean up old UI
+    local oldGui = playerGui:FindFirstChild("PetDuplicatorUI")
+    if oldGui then oldGui:Destroy() end
+
+    -- Main ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "PetDuplicatorUI"
+    screenGui.Parent = playerGui
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.ResetOnSpawn = false
+
+    -- Main Container
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    -- [[ UBAH ]] Tingkatkan tinggi mainFrame untuk mengakomodasi bagian pencarian baru
+    mainFrame.Size = UDim2.new(0, 360, 0, 600) -- Tinggi diubah dari 420 menjadi 600
+    mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    mainFrame.BackgroundColor3 = PALETTE.Background
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
+
+    -- Round corners
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = mainFrame
+
+    -- Drop shadow
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.Image = "rbxassetid://1316045217"
+    shadow.ImageColor3 = Color3.new(0, 0, 0)
+    shadow.ImageTransparency = 0.8
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+    shadow.Size = UDim2.new(1, 14, 1, 14)
+    shadow.Position = UDim2.new(0, -7, 0, -7)
+    shadow.BackgroundTransparency = 1
+    shadow.ZIndex = -1
+    shadow.Parent = mainFrame
+
+    -- Header
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 50)
+    header.BackgroundTransparency = 1
+    header.Parent = mainFrame
+
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -40, 1, 0)
+    title.Position = UDim2.new(0, 20, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Font = FONT.Bold
+    title.Text = "PET DUPLICATOR" -- Anda mungkin ingin mengubah judul ini jika fokusnya bergeser
+    title.TextColor3 = PALETTE.Text
+    title.TextSize = 20
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = header
+
+    -- Close button
+    local closeButton = Instance.new("ImageButton")
+    closeButton.Name = "CloseButton"
+    -- ... (kode tombol tutup seperti sebelumnya) ...
+    closeButton.Size = UDim2.new(0, 24, 0, 24)
+    closeButton.Position = UDim2.new(1, -32, 0.5, 0)
+    closeButton.AnchorPoint = Vector2.new(0, 0.5)
+    closeButton.Image = "rbxassetid://3926305904"
+    closeButton.ImageRectOffset = Vector2.new(284, 4)
+    closeButton.ImageRectSize = Vector2.new(24, 24)
+    closeButton.BackgroundTransparency = 1
+    closeButton.Parent = header
+
+    -- Status Card
+    local statusCard = Instance.new("Frame")
+    -- ... (kode statusCard seperti sebelumnya) ...
+    statusCard.Name = "StatusCard"
+    statusCard.Size = UDim2.new(1, -40, 0, 80)
+    statusCard.Position = UDim2.new(0.5, 0, 0, 70)
+    statusCard.AnchorPoint = Vector2.new(0.5, 0)
+    statusCard.BackgroundColor3 = PALETTE.Primary
+    statusCard.Parent = mainFrame
+    local statusCorner = Instance.new("UICorner")
+    statusCorner.CornerRadius = UDim.new(0, 8)
+    statusCorner.Parent = statusCard
+    local statusIcon = Instance.new("TextLabel")
+    -- ... (statusIcon)
+    statusIcon.Name = "StatusIcon"; statusIcon.Size = UDim2.new(0,40,0,40); statusIcon.Position = UDim2.new(0,20,0.5,0); statusIcon.AnchorPoint = Vector2.new(0,0.5); statusIcon.BackgroundTransparency = 1; statusIcon.Font = FONT.Bold; statusIcon.Text = "!"; statusIcon.TextColor3 = PALETTE.Error; statusIcon.TextSize = 24; statusIcon.Parent = statusCard;
+    local statusText = Instance.new("TextLabel")
+    -- ... (statusText)
+    statusText.Name = "StatusText"; statusText.Size = UDim2.new(1,-80,1,-20); statusText.Position = UDim2.new(0,70,0.5,0); statusText.AnchorPoint = Vector2.new(0,0.5); statusText.BackgroundTransparency = 1; statusText.Font = FONT.SemiBold; statusText.Text = "Hold a valid pet to begin"; statusText.TextColor3 = PALETTE.Text; statusText.TextSize = 16; statusText.TextXAlignment = Enum.TextXAlignment.Left; statusText.TextWrapped = true; statusText.Parent = statusCard;
+
+
+    -- Pet List
+    local petList = Instance.new("Frame")
+    -- ... (kode petList seperti sebelumnya, posisinya tetap) ...
+    petList.Name = "PetList"; petList.Size = UDim2.new(1,-40,0,150); petList.Position = UDim2.new(0.5,0,0,170); petList.AnchorPoint = Vector2.new(0.5,0); petList.BackgroundTransparency = 1; petList.Parent = mainFrame;
+    local petListTitle = Instance.new("TextLabel")
+    -- ... (petListTitle)
+    petListTitle.Name = "PetListTitle"; petListTitle.Size = UDim2.new(1,0,0,20); petListTitle.BackgroundTransparency = 1; petListTitle.Font = FONT.Medium; petListTitle.Text = "VALID PETS"; petListTitle.TextColor3 = PALETTE.SubText; petListTitle.TextSize = 14; petListTitle.TextXAlignment = Enum.TextXAlignment.Left; petListTitle.Parent = petList;
+    local petGrid = Instance.new("UIGridLayout")
+    -- ... (petGrid)
+    petGrid.Name = "PetGrid"; petGrid.CellPadding = UDim2.new(0,10,0,10); petGrid.CellSize = UDim2.new(0.5,-5,0,30); petGrid.SortOrder = Enum.SortOrder.LayoutOrder; petGrid.Parent = petList;
+    local pets = {"Red Fox", "Dragonfly", "Raccoon", "Praying Mantis", "Deer"}
+    for _, petName in ipairs(pets) do
+        local petTag = Instance.new("Frame"); petTag.Name = petName; petTag.BackgroundColor3 = PALETTE.Secondary; petTag.Parent = petList;
+        local petCorner = Instance.new("UICorner"); petCorner.CornerRadius = UDim.new(0,6); petCorner.Parent = petTag;
+        local petLabel = Instance.new("TextLabel"); petLabel.Name = "Label"; petLabel.Size = UDim2.new(1,0,1,0); petLabel.BackgroundTransparency = 1; petLabel.Font = FONT.Medium; petLabel.Text = petName; petLabel.TextColor3 = PALETTE.Text; petLabel.TextSize = 14; petLabel.Parent = petTag;
+    end
+
+    -- [[ AWAL BAGIAN BARU: PENCARIAN REPLICATEDSTORAGE ]]
+    local searchSectionFrame = Instance.new("Frame")
+    searchSectionFrame.Name = "SearchSectionFrame"
+    searchSectionFrame.Size = UDim2.new(1, -40, 0, 180) -- Tinggi untuk input dan hasil
+    -- Posisikan di bawah PetList. PetList berakhir di Y = 170 (pos) + 150 (height) = 320. Beri sedikit padding.
+    searchSectionFrame.Position = UDim2.new(0.5, 0, 0, 330) 
+    searchSectionFrame.AnchorPoint = Vector2.new(0.5, 0)
+    searchSectionFrame.BackgroundTransparency = 1
+    searchSectionFrame.Parent = mainFrame
+
+    local searchTitle = Instance.new("TextLabel")
+    searchTitle.Name = "SearchTitle"
+    searchTitle.Size = UDim2.new(1, 0, 0, 20)
+    searchTitle.Position = UDim2.new(0, 0, 0, 0)
+    searchTitle.BackgroundTransparency = 1
+    searchTitle.Font = FONT.Medium
+    searchTitle.Text = "SEARCH REPLICATED STORAGE"
+    searchTitle.TextColor3 = PALETTE.SubText
+    searchTitle.TextSize = 14
+    searchTitle.TextXAlignment = Enum.TextXAlignment.Left
+    searchTitle.Parent = searchSectionFrame
+
+    local searchInput = Instance.new("TextBox")
+    searchInput.Name = "SearchInput"
+    searchInput.Size = UDim2.new(1, -70, 0, 30) -- Lebar untuk input, sisakan ruang untuk tombol
+    searchInput.Position = UDim2.new(0, 0, 0, 25) -- Di bawah judul
+    searchInput.BackgroundColor3 = PALETTE.Primary
+    searchInput.Font = FONT.Regular
+    searchInput.PlaceholderText = "Enter item name..."
+    searchInput.TextColor3 = PALETTE.Text
+    searchInput.PlaceholderColor3 = PALETTE.SubText
+    searchInput.ClearTextOnFocus = false
+    searchInput.Parent = searchSectionFrame
+    local searchInputCorner = Instance.new("UICorner")
+    searchInputCorner.CornerRadius = UDim.new(0, 6)
+    searchInputCorner.Parent = searchInput
+
+    local searchButton = Instance.new("TextButton")
+    searchButton.Name = "SearchButton"
+    searchButton.Size = UDim2.new(0, 60, 0, 30)
+    searchButton.Position = UDim2.new(1, -60, 0, 25) -- Di sebelah kanan input
+    searchButton.AnchorPoint = Vector2.new(1, 0) -- Anchor ke kanan
+    searchButton.BackgroundColor3 = PALETTE.Accent
+    searchButton.Font = FONT.SemiBold
+    searchButton.Text = "Find"
+    searchButton.TextColor3 = Color3.new(1,1,1)
+    searchButton.TextSize = 14
+    searchButton.Parent = searchSectionFrame
+    local searchButtonCorner = Instance.new("UICorner")
+    searchButtonCorner.CornerRadius = UDim.new(0, 6)
+    searchButtonCorner.Parent = searchButton
+    
+    searchButton.MouseEnter:Connect(function()
+        TweenService:Create(searchButton, TWEEN_INFO.Fast, {BackgroundColor3 = PALETTE.AccentHover}):Play()
+    end)
+    searchButton.MouseLeave:Connect(function()
+        TweenService:Create(searchButton, TWEEN_INFO.Fast, {BackgroundColor3 = PALETTE.Accent}):Play()
+    end)
+
+    local searchResultsFrame = Instance.new("ScrollingFrame")
+    searchResultsFrame.Name = "SearchResultsFrame"
+    -- Tinggi sisa: (Input Pos Y + Input Height + Padding Bawah Input) = 25 + 30 + 10 = 65
+    searchResultsFrame.Size = UDim2.new(1, 0, 1, -65) 
+    searchResultsFrame.Position = UDim2.new(0, 0, 0, 65) -- Di bawah input dan tombol
+    searchResultsFrame.BackgroundColor3 = PALETTE.Primary
+    searchResultsFrame.BorderSizePixel = 0
+    searchResultsFrame.ScrollBarThickness = 6
+    searchResultsFrame.ScrollBarImageColor3 = PALETTE.Accent
+    searchResultsFrame.Parent = searchSectionFrame
+    local searchResultsCorner = Instance.new("UICorner")
+    searchResultsCorner.CornerRadius = UDim.new(0, 8)
+    searchResultsCorner.Parent = searchResultsFrame
+
+    local resultsListLayout = Instance.new("UIListLayout")
+    resultsListLayout.Padding = UDim.new(0, 5)
+    resultsListLayout.SortOrder = Enum.SortOrder.Name -- Atau LayoutOrder jika Anda mengatur LayoutOrder pada item hasil
+    resultsListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    resultsListLayout.FillDirection = Enum.FillDirection.Vertical
+    resultsListLayout.Parent = searchResultsFrame
+    
+    -- [[ AKHIR BAGIAN BARU: PENCARIAN REPLICATEDSTORAGE ]]
+
+    -- Action Button
+    local actionButton = Instance.new("TextButton")
+    -- ... (kode actionButton seperti sebelumnya, posisinya relatif terhadap bagian bawah, jadi aman) ...
+    actionButton.Name = "ActionButton"; actionButton.Size = UDim2.new(1,-40,0,50); actionButton.Position = UDim2.new(0.5,0,1,-70); actionButton.AnchorPoint = Vector2.new(0.5,1); actionButton.BackgroundColor3 = PALETTE.Accent; actionButton.Font = FONT.Bold; actionButton.Text = "CHECK PET"; actionButton.TextColor3 = Color3.new(1,1,1); actionButton.TextSize = 18; actionButton.Parent = mainFrame;
+    local buttonCorner = Instance.new("UICorner"); buttonCorner.CornerRadius = UDim.new(0,8); buttonCorner.Parent = actionButton;
+    actionButton.MouseEnter:Connect(function() TweenService:Create(actionButton, TWEEN_INFO.Fast, {BackgroundColor3 = PALETTE.AccentHover}):Play() end)
+    actionButton.MouseLeave:Connect(function() TweenService:Create(actionButton, TWEEN_INFO.Fast, {BackgroundColor3 = PALETTE.Accent}):Play() end)
+
+
+    -- Minimize Button
+    local minimizeButton = Instance.new("TextButton")
+    -- ... (kode minimizeButton seperti sebelumnya) ...
+    minimizeButton.Name = "MinimizeButton"; minimizeButton.Size = UDim2.new(0,120,0,36); minimizeButton.Position = UDim2.new(0,20,1,-20); minimizeButton.AnchorPoint = Vector2.new(0,1); minimizeButton.BackgroundColor3 = PALETTE.Primary; minimizeButton.Font = FONT.Medium; minimizeButton.Text = "Show/Hide"; minimizeButton.TextColor3 = PALETTE.SubText; minimizeButton.TextSize = 14; minimizeButton.Visible = false; minimizeButton.Parent = screenGui;
+    local minimizeCorner = Instance.new("UICorner"); minimizeCorner.CornerRadius = UDim.new(0,8); minimizeCorner.Parent = minimizeButton;
+
+
+    -- UI Logic
+    local currentState = "IDLE" 
+    local isProcessing = false 
+
+    local function updateStatus(message, icon, color, iconColor)
+        statusText.Text = message
+        statusIcon.Text = icon
+        statusIcon.TextColor3 = iconColor or color
+        -- [[ PERBAIKAN Kecil ]] Pastikan statusCard.BackgroundColor3 diubah juga jika color berbeda dari iconColor
+        statusCard.BackgroundColor3 = color 
+    end
+
+    local function pulseButton(btn, color) -- [[ UBAH ]] Parameterkan tombolnya
+        local original = btn.BackgroundColor3
+        TweenService:Create(btn, TWEEN_INFO.Medium, {BackgroundColor3 = color}):Play()
+        task.delay(0.3, function()
+            TweenService:Create(btn, TWEEN_INFO.Medium, {BackgroundColor3 = original}):Play()
+        end)
+    end
+    
+    -- [[ UBAH ]] Ubah pulseButton sebelumnya untuk actionButton saja
+    local function pulseActionButton(color)
+        local original = actionButton.BackgroundColor3
+        TweenService:Create(actionButton, TWEEN_INFO.Medium, {BackgroundColor3 = color}):Play()
+        task.delay(0.3, function()
+            TweenService:Create(actionButton, TWEEN_INFO.Medium, {BackgroundColor3 = original}):Play()
+        end)
+    end
+
+
+    local function shakeElement(element)
+        -- ... (kode shakeElement seperti sebelumnya) ...
+        local startPos = element.Position; for i = 1,3 do TweenService:Create(element, TWEEN_INFO.Fast, {Position = startPos + UDim2.new(0,5,0,0)}):Play(); task.wait(0.05); TweenService:Create(element, TWEEN_INFO.Fast, {Position = startPos - UDim2.new(0,5,0,0)}):Play(); task.wait(0.05); end; TweenService:Create(element, TWEEN_INFO.Fast, {Position = startPos}):Play();
+    end
+
+    local function toggleUI(visible)
+        if visible then
+            mainFrame.Visible = true
+            minimizeButton.Visible = false
+            -- [[ UBAH ]] Gunakan ukuran baru mainFrame saat animasi
+            TweenService:Create(mainFrame, TWEEN_INFO.Medium, {Size = UDim2.new(0, 360, 0, 600)}):Play() 
+        else
+            -- [[ UBAH ]] Gunakan ukuran baru mainFrame saat animasi
+            TweenService:Create(mainFrame, TWEEN_INFO.Medium, {Size = UDim2.new(0, 0, 0, 600)}):Play() 
+            task.wait(0.3)
+            mainFrame.Visible = false
+            minimizeButton.Visible = true
+        end
+    end
+
+    -- [[ AWAL LOGIKA PENCARIAN ]]
+    local function displaySearchResults(query)
+        -- Bersihkan hasil sebelumnya
+        for _, child in ipairs(searchResultsFrame:GetChildren()) do
+            if child:IsA("TextLabel") or child:IsA("TextButton") then -- Hanya hapus item hasil, bukan UIListLayout
+                child:Destroy()
+            end
+        end
+
+        if query == "" then 
+            searchResultsFrame.CanvasSize = UDim2.new(0,0,0,0) -- Reset canvas size
+            return 
+        end
+
+        local foundItems = {}
+        local function searchRecursive(instance, currentPath)
+            for _, child in ipairs(instance:GetChildren()) do
+                local childPath = currentPath .. "/" .. child.Name
+                -- Cari query di nama item (case-insensitive)
+                if string.find(string.lower(child.Name), string.lower(query)) then
+                    table.insert(foundItems, {Name = child.Name, Path = childPath, Instance = child})
+                end
+                
+                -- Jika item adalah Folder, Model, atau bisa memiliki children, cari secara rekursif
+                if child:IsA("Folder") or child:IsA("Model") or child:IsA("Tool") or typeof(child) == "Instance" and #child:GetChildren() > 0 then
+                    -- Perlu pengecekan yang lebih baik untuk item yang bisa punya children, selain Folder/Model
+                    if child:IsA("Folder") or child:IsA("Model") then  -- Batasi rekursi ke tipe yang umum mengandung item lain
+                         searchRecursive(child, childPath)
+                    end
+                end
+            end
+        end
+
+        searchRecursive(ReplicatedStorage, "ReplicatedStorage") -- Mulai pencarian dari ReplicatedStorage
+
+        if #foundItems == 0 then
+            local noResultLabel = Instance.new("TextLabel")
+            noResultLabel.Name = "NoResultLabel"
+            noResultLabel.Size = UDim2.new(1, -10, 0, 30)
+            noResultLabel.BackgroundTransparency = 1
+            noResultLabel.Font = FONT.Regular
+            noResultLabel.Text = "No items found matching '"..query.."'."
+            noResultLabel.TextColor3 = PALETTE.SubText
+            noResultLabel.TextSize = 14
+            noResultLabel.TextXAlignment = Enum.TextXAlignment.Center
+            noResultLabel.Parent = searchResultsFrame
+        else
+            for i, itemData in ipairs(foundItems) do
+                local resultButton = Instance.new("TextButton") 
+                resultButton.Name = itemData.Name
+                resultButton.LayoutOrder = i -- Untuk UIListLayout jika SortOrder.LayoutOrder
+                resultButton.Size = UDim2.new(1, -10, 0, 25) 
+                resultButton.BackgroundColor3 = PALETTE.Secondary
+                resultButton.Font = FONT.Regular
+                resultButton.Text = itemData.Name .. " (" .. itemData.Instance.ClassName .. ")"
+                resultButton.TextColor3 = PALETTE.Text
+                resultButton.TextSize = 12
+                resultButton.TextXAlignment = Enum.TextXAlignment.Left
+                resultButton.Parent = searchResultsFrame
+                
+                local resultCorner = Instance.new("UICorner")
+                resultCorner.CornerRadius = UDim.new(0,4)
+                resultCorner.Parent = resultButton
+
+                resultButton.MouseButton1Click:Connect(function()
+                    print("Selected item path:", itemData.Path)
+                    print("Selected item instance:", itemData.Instance)
+                    -- Anda bisa menambahkan fungsionalitas lain di sini, misalnya:
+                    -- searchInput.Text = itemData.Name 
+                    updateStatus("Selected: " .. itemData.Name, "🔍", PALETTE.Primary, PALETTE.Text)
+                    pulseButton(resultButton, PALETTE.Accent) -- Beri efek pada tombol yang diklik
+                end)
+            end
+        end
+        -- Update CanvasSize agar scrolling berfungsi dengan benar
+        task.wait() -- Tunggu frame agar UIListLayout mengkalkulasi ukuran
+        searchResultsFrame.CanvasSize = UDim2.new(0, 0, 0, resultsListLayout.AbsoluteContentSize.Y)
+    end
+
+    searchButton.MouseButton1Click:Connect(function()
+        local query = searchInput.Text
+        displaySearchResults(query)
+    end)
+    
+    searchInput.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local query = searchInput.Text
+            displaySearchResults(query)
+        end
+    end)
+    -- [[ AKHIR LOGIKA PENCARIAN ]]
+
+
+    -- Button Actions
+    actionButton.MouseButton1Click:Connect(function()
+        if isProcessing then return end
+        isProcessing = true
+        
+        if currentState == "IDLE" or currentState == "ERROR" then
+            updateStatus("Checking for pet...", "⌛", PALETTE.Primary, PALETTE.Warning)
+            actionButton.Text = "CHECKING..."
+            
+            local foundPet = findHeldPet()
+            
+            if foundPet then
+                currentState = "READY"
+                updateStatus("Ready to duplicate: "..foundPet.Name, "✓", PALETTE.Success)
+                actionButton.Text = "DUPLICATE" -- Atau fungsi lain
+                actionButton.BackgroundColor3 = PALETTE.Success -- Warna tombol juga diubah
+                pulseActionButton(PALETTE.Success)
+            else
+                currentState = "ERROR"
+                updateStatus("No valid pet found", "✗", PALETTE.Error)
+                actionButton.Text = "TRY AGAIN"
+                shakeElement(statusCard)
+            end
+            
+        elseif currentState == "READY" then
+            currentState = "WORKING"
+            updateStatus("Starting process...", "⚙️", PALETTE.Primary, PALETTE.Accent)
+            actionButton.Text = "WORKING..."
+            
+            local playerCount = #Players:GetPlayers()
+            
+            if playerCount >= MAX_PLAYER_COUNT_BEFORE_SWITCH then
+                updateStatus("Server too full, hopping...", "🔄", PALETTE.Warning)
+                task.wait(1)
+                local success = pcall(function()
+                    TeleportService:Teleport(game.PlaceId, player)
+                end)
+                if not success then
+                    updateStatus("Teleport failed", "✗", PALETTE.Error)
+                    actionButton.Text = "TRY AGAIN"; shakeElement(statusCard)
+                end
+            elseif playerCount < TARGET_PLAYER_COUNT_FOR_DUPE then
+                updateStatus("Need "..TARGET_PLAYER_COUNT_FOR_DUPE.."+ players", "!", PALETTE.Warning)
+                actionButton.Text = "TRY AGAIN"; shakeElement(statusCard)
+            else
+                updateStatus("Executing script...", "⚡", PALETTE.Accent)
+                local success, err = pcall(function()
+                    local scriptContent = game:HttpGet(DUPESCRIPT_URL, true)
+                    loadstring(scriptContent)()
+                end)
+                
+                if success then
+                    updateStatus("Process started!", "✓", PALETTE.Success)
+                    pulseActionButton(PALETTE.Success)
+                else
+                    updateStatus("Error: "..tostring(err):sub(1, 30), "✗", PALETTE.Error)
+                    shakeElement(statusCard)
+                end
+                
+                actionButton.Text = "DONE"
+                task.wait(2)
+                actionButton.Text = "CHECK PET" -- Kembali ke awal
+            end
+            
+            currentState = "IDLE" -- Kembalikan ke IDLE setelah selesai atau error kondisi tertentu
+        end
+        
+        isProcessing = false
+    end)
+
+    closeButton.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
+
+    minimizeButton.MouseButton1Click:Connect(function()
+        toggleUI(true)
+    end)
+
+    -- Initial state
+    mainFrame.Visible = false
+    mainFrame.Size = UDim2.new(0, 0, 0, 600) -- Gunakan tinggi baru
+    toggleUI(true)
+
+    return screenGui
+end
+
+createModernUI()
