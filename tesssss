@@ -1,277 +1,220 @@
--- Mobile-optimized DAIZZ DUPER X GUI
--- Enhanced for touchscreen devices with larger buttons and better scaling
+-- Script GUI DAIZZ DUPER X
+-- Dibuat untuk dieksekusi langsung melalui Delta Executor atau sejenisnya.
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui") -- Menggunakan CoreGui untuk GUI executor
+local UserInputService = game:GetService("UserInputService") -- Untuk mendeteksi input keyboard
 
--- Remove old GUI if exists
+-- Hapus GUI lama jika ada untuk mencegah duplikasi saat eksekusi berulang
 if CoreGui:FindFirstChild("DuperGUI") then
     CoreGui.DuperGUI:Destroy()
 end
 
--- Screen dimensions for responsive scaling
-local viewportSize = workspace.CurrentCamera.ViewportSize
-local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
-local scaleFactor = isMobile and math.min(viewportSize.X/500, 1.2) or 1
-
--- Create ScreenGui
+-- Buat ScreenGui baru
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DuperGUI"
-screenGui.DisplayOrder = 999
-screenGui.IgnoreGuiInset = true
-screenGui.ResetOnSpawn = false
-screenGui.Parent = CoreGui
+screenGui.DisplayOrder = 999 -- Pastikan GUI muncul di atas semua GUI lain
+screenGui.IgnoreGuiInset = true -- Mengabaikan inset GUI (misalnya, bar atas Roblox)
+screenGui.Parent = CoreGui -- Parent ke CoreGui
 
--- Main Frame with responsive sizing
+-- Buat MainFrame (kotak utama)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 300 * scaleFactor, 0, 400 * scaleFactor)
-mainFrame.Position = UDim2.new(0.5, -150 * scaleFactor, 0.5, -200 * scaleFactor)
+mainFrame.Size = UDim2.new(0, 300, 0, 350) -- Ukuran GUI diperkecil
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -175) -- Sesuaikan posisi agar tetap di tengah
 mainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 
--- Rounded corners
+-- Tambahkan UICorner ke MainFrame untuk sudut melengkung
 local mainFrameCorner = Instance.new("UICorner")
-mainFrameCorner.CornerRadius = UDim.new(0, 12 * scaleFactor)
+mainFrameCorner.CornerRadius = UDim.new(0, 10) -- Sesuaikan radius
 mainFrameCorner.Parent = mainFrame
 
--- Drop shadow for better visibility
-local shadow = Instance.new("ImageLabel")
-shadow.Name = "Shadow"
-shadow.Image = "rbxassetid://1316045217"
-shadow.ImageColor3 = Color3.new(0, 0, 0)
-shadow.ImageTransparency = 0.8
-shadow.ScaleType = Enum.ScaleType.Slice
-shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-shadow.Size = UDim2.new(1, 10 * scaleFactor, 1, 10 * scaleFactor)
-shadow.Position = UDim2.new(0, -5 * scaleFactor, 0, -5 * scaleFactor)
-shadow.BackgroundTransparency = 1
-shadow.Parent = mainFrame
-shadow.ZIndex = -1
-
--- UI Padding
+-- UI Padding untuk memberi sedikit ruang di dalam frame
 local uiPadding = Instance.new("UIPadding")
-uiPadding.PaddingTop = UDim.new(0, 15 * scaleFactor)
-uiPadding.PaddingBottom = UDim.new(0, 15 * scaleFactor)
-uiPadding.PaddingLeft = UDim.new(0, 20 * scaleFactor)
-uiPadding.PaddingRight = UDim.new(0, 20 * scaleFactor)
+uiPadding.PaddingTop = UDim.new(0, 10) -- Padding diperkecil
+uiPadding.PaddingBottom = UDim.new(0, 10)
+uiPadding.PaddingLeft = UDim.new(0, 15) -- Padding diperkecil
+uiPadding.PaddingRight = UDim.new(0, 15)
 uiPadding.Parent = mainFrame
 
--- UIListLayout for vertical arrangement
+-- UIListLayout untuk mengatur elemen secara vertikal
 local listLayout = Instance.new("UIListLayout")
 listLayout.FillDirection = Enum.FillDirection.Vertical
 listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-listLayout.Padding = UDim.new(0, 12 * scaleFactor)
+listLayout.Padding = UDim.new(0, 8) -- Jarak antar elemen diperkecil
 listLayout.Parent = mainFrame
 
--- Make frame draggable on mobile
-local dragStartPos, frameStartPos
-local function makeDraggable(frame)
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            dragStartPos = input.Position
-            frameStartPos = frame.Position
-            local tween = TweenService:Create(frame, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(60, 60, 60)})
-            tween:Play()
-        end
-    end)
-    
-    frame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch and dragStartPos then
-            local delta = input.Position - dragStartPos
-            frame.Position = UDim2.new(frameStartPos.X.Scale, frameStartPos.X.Offset + delta.X, 
-                                      frameStartPos.Y.Scale, frameStartPos.Y.Offset + delta.Y)
-        end
-    end)
-    
-    frame.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            dragStartPos = nil
-            local tween = TweenService:Create(frame, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(45, 45, 45)})
-            tween:Play()
-        end
-    end)
-end
+--------------------------------------------------------------------------------
+-- Tombol Kontrol (Close dan Toggle)
+--------------------------------------------------------------------------------
 
-makeDraggable(mainFrame)
-
--- Control Buttons (Close and Toggle)
-local controlButtons = Instance.new("Frame")
-controlButtons.Name = "ControlButtons"
-controlButtons.Size = UDim2.new(1, 0, 0, 30 * scaleFactor)
-controlButtons.BackgroundTransparency = 1
-controlButtons.Parent = mainFrame
-
-local controlButtonsLayout = Instance.new("UIListLayout")
-controlButtonsLayout.FillDirection = Enum.FillDirection.Horizontal
-controlButtonsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-controlButtonsLayout.Padding = UDim.new(0, 10 * scaleFactor)
-controlButtonsLayout.Parent = controlButtons
-
--- Toggle Button (Eye icon)
-local toggleButton = Instance.new("ImageButton")
-toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(0, 30 * scaleFactor, 0, 30 * scaleFactor)
-toggleButton.BackgroundTransparency = 1
-toggleButton.Image = "rbxassetid://5404170067"
-toggleButton.ScaleType = Enum.ScaleType.Fit
-toggleButton.Parent = controlButtons
-
--- Close Button (X icon)
+-- Tombol Tutup GUI (X icon) - Di sudut kanan atas
 local closeButton = Instance.new("ImageButton")
 closeButton.Name = "CloseButton"
-closeButton.Size = UDim2.new(0, 30 * scaleFactor, 0, 30 * scaleFactor)
+closeButton.Size = UDim2.new(0, 25, 0, 25) -- Ukuran yang nyaman untuk disentuh di mobile
+closeButton.Position = UDim2.new(1, -35, 0, 5) -- Posisi relatif ke MainFrame (kanan atas)
 closeButton.BackgroundTransparency = 1
-closeButton.Image = "rbxassetid://5404169722"
-closeButton.ScaleType = Enum.ScaleType.Fit
-closeButton.Parent = controlButtons
-
--- Button animations
-local function buttonHoverEffect(button)
-    button.MouseEnter:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.1), {ImageColor3 = Color3.fromRGB(200, 200, 200)}):Play()
-    end)
-    button.MouseLeave:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.1), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-    end)
-end
-
-buttonHoverEffect(toggleButton)
-buttonHoverEffect(closeButton)
-
--- Toggle functionality
-local isGuiVisible = true
-toggleButton.MouseButton1Click:Connect(function()
-    isGuiVisible = not isGuiVisible
-    screenGui.Enabled = isGuiVisible
-end)
+closeButton.Image = "rbxassetid://5404169722" -- ID aset ikon 'X'
+closeButton.Parent = mainFrame
+closeButton.AutoButtonColor = true -- Memberikan feedback visual saat disentuh
+closeButton.ZIndex = 2 -- Memastikan tombol berada di atas elemen lain
 
 closeButton.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
+    screenGui:Destroy() -- Menghancurkan seluruh GUI
+    print("GUI 'DAIZZ DUPER X' telah dihapus.")
 end)
 
--- Header Section
+-- Tombol Sembunyikan/Tampilkan GUI (Eye icon) - Di sebelah tombol tutup
+local toggleButton = Instance.new("ImageButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0, 25, 0, 25) -- Ukuran yang nyaman untuk disentuh di mobile
+toggleButton.Position = UDim2.new(1, -65, 0, 5) -- Posisi relatif ke MainFrame (di sebelah tombol tutup)
+toggleButton.BackgroundTransparency = 1
+toggleButton.Image = "rbxassetid://5404170067" -- ID aset ikon 'mata' (view)
+toggleButton.Parent = mainFrame
+toggleButton.AutoButtonColor = true -- Memberikan feedback visual saat disentuh
+toggleButton.ZIndex = 2 -- Memastikan tombol berada di atas elemen lain
+
+local isGuiVisible = true -- Status awal GUI (terlihat)
+toggleButton.MouseButton1Click:Connect(function()
+    isGuiVisible = not isGuiVisible -- Balik status visibilitas
+    screenGui.Enabled = isGuiVisible -- Terapkan status ke ScreenGui
+
+    if isGuiVisible then
+        print("GUI 'DAIZZ DUPER X' ditampilkan.")
+    else
+        print("GUI 'DAIZZ DUPER X' disembunyikan.")
+    end
+end)
+
+--------------------------------------------------------------------------------
+-- Header Section (tetap seperti sebelumnya, disesuaikan agar rapi)
+--------------------------------------------------------------------------------
 local headerFrame = Instance.new("Frame")
 headerFrame.Name = "HeaderFrame"
-headerFrame.Size = UDim2.new(1, 0, 0, 40 * scaleFactor)
+headerFrame.Size = UDim2.new(1, 0, 0, 25) -- Tinggi header diperkecil
 headerFrame.BackgroundTransparency = 1
 headerFrame.Parent = mainFrame
 
-local headerLayout = Instance.new("UIListLayout")
-headerLayout.FillDirection = Enum.FillDirection.Horizontal
-headerLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-headerLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-headerLayout.Padding = UDim.new(0, 10 * scaleFactor)
-headerLayout.Parent = headerFrame
+local headerListLayout = Instance.new("UIListLayout")
+headerListLayout.FillDirection = Enum.FillDirection.Horizontal
+headerListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+headerListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+headerListLayout.Padding = UDim.new(0, 5)
+headerListLayout.Parent = headerFrame
 
--- Lightning Icon
+-- Icon Petir (Lightning)
 local lightningIcon = Instance.new("ImageLabel")
 lightningIcon.Name = "LightningIcon"
-lightningIcon.Size = UDim2.new(0, 30 * scaleFactor, 0, 30 * scaleFactor)
+lightningIcon.Size = UDim2.new(0, 20, 0, 20) -- Ukuran ikon diperkecil
 lightningIcon.BackgroundTransparency = 1
-lightningIcon.Image = "rbxassetid://6034177579"
+lightningIcon.Image = "rbxassetid://6034177579" -- Ganti dengan ID ikon petir yang sesuai (contoh: warning icon)
 lightningIcon.Parent = headerFrame
 
--- Title Text
+-- Judul "DAIZZ DUPER X"
 local titleText = Instance.new("TextLabel")
 titleText.Name = "TitleText"
-titleText.Size = UDim2.new(0, 150 * scaleFactor, 0, 40 * scaleFactor)
+titleText.Size = UDim2.new(0, 140, 0, 25) -- Ukuran teks diperkecil
 titleText.BackgroundTransparency = 1
-titleText.Font = Enum.Font.GothamBold
+titleText.Font = Enum.Font.SourceSansBold -- Font tebal
 titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleText.TextSize = 22 * scaleFactor
+titleText.TextSize = 20 -- Ukuran font diperkecil
 titleText.Text = "DAIZZ DUPER X"
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = headerFrame
 
--- Version Text
+-- Versi "(v3.2.1)"
 local versionText = Instance.new("TextLabel")
 versionText.Name = "VersionText"
-versionText.Size = UDim2.new(0, 70 * scaleFactor, 0, 40 * scaleFactor)
+versionText.Size = UDim2.new(0, 70, 0, 25) -- Ukuran teks diperkecil
 versionText.BackgroundTransparency = 1
-versionText.Font = Enum.Font.Gotham
+versionText.Font = Enum.Font.SourceSansLight -- Font lebih tipis
 versionText.TextColor3 = Color3.fromRGB(200, 200, 200)
-versionText.TextSize = 16 * scaleFactor
+versionText.TextSize = 16 -- Ukuran font diperkecil
 versionText.Text = "(v3.2.1)"
 versionText.TextXAlignment = Enum.TextXAlignment.Left
 versionText.Parent = headerFrame
 
+--------------------------------------------------------------------------------
 -- Error Section
+--------------------------------------------------------------------------------
 local errorFrame = Instance.new("Frame")
 errorFrame.Name = "ErrorFrame"
-errorFrame.Size = UDim2.new(1, 0, 0, 80 * scaleFactor)
-errorFrame.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+errorFrame.Size = UDim2.new(1, 0, 0, 70) -- Tinggi diperkecil
+errorFrame.BackgroundColor3 = Color3.fromRGB(150, 0, 0) -- Warna merah gelap
+errorFrame.BorderSizePixel = 0
 errorFrame.Parent = mainFrame
 
-local errorCorner = Instance.new("UICorner")
-errorCorner.CornerRadius = UDim.new(0, 8 * scaleFactor)
-errorCorner.Parent = errorFrame
+-- Tambahkan UICorner ke errorFrame
+local errorFrameCorner = Instance.new("UICorner")
+errorFrameCorner.CornerRadius = UDim.new(0, 8)
+errorFrameCorner.Parent = errorFrame
 
-local errorLayout = Instance.new("UIListLayout")
-errorLayout.FillDirection = Enum.FillDirection.Vertical
-errorLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-errorLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-errorLayout.Padding = UDim.new(0, 5 * scaleFactor)
-errorLayout.Parent = errorFrame
+-- UIListLayout untuk konten error
+local errorListLayout = Instance.new("UIListLayout")
+errorListLayout.FillDirection = Enum.FillDirection.Vertical
+errorListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+errorListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+errorListLayout.Padding = UDim.new(0, 4) -- Padding diperkecil
+errorListLayout.Parent = errorFrame
 
--- Error Icon
+-- Icon X Merah
 local errorIcon = Instance.new("ImageLabel")
 errorIcon.Name = "ErrorIcon"
-errorIcon.Size = UDim2.new(0, 30 * scaleFactor, 0, 30 * scaleFactor)
+errorIcon.Size = UDim2.new(0, 25, 0, 25) -- Ukuran ikon diperkecil
 errorIcon.BackgroundTransparency = 1
-errorIcon.Image = "rbxassetid://5404169722"
-errorIcon.ImageColor3 = Color3.fromRGB(255, 150, 150)
+errorIcon.Image = "rbxassetid://5404169722" -- Ganti dengan ID ikon X merah yang sesuai
 errorIcon.Parent = errorFrame
 
--- Error Title
+-- Text "ERROR: REQUIRED PET NOT FOUND"
 local errorTitle = Instance.new("TextLabel")
 errorTitle.Name = "ErrorTitle"
-errorTitle.Size = UDim2.new(1, -20 * scaleFactor, 0, 20 * scaleFactor)
+errorTitle.Size = UDim2.new(1, -20, 0, 18) -- Tinggi diperkecil
 errorTitle.BackgroundTransparency = 1
-errorTitle.Font = Enum.Font.GothamBold
+errorTitle.Font = Enum.Font.SourceSansBold
 errorTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-errorTitle.TextSize = 16 * scaleFactor
+errorTitle.TextSize = 16 -- Ukuran font diperkecil
 errorTitle.Text = "ERROR: REQUIRED PET NOT FOUND"
 errorTitle.Parent = errorFrame
 
--- Error Message
+-- Text "REQUIRES RED FOX, DRAGONFLY, OR RACCOON!"
 local errorMessage = Instance.new("TextLabel")
 errorMessage.Name = "ErrorMessage"
-errorMessage.Size = UDim2.new(1, -20 * scaleFactor, 0, 18 * scaleFactor)
+errorMessage.Size = UDim2.new(1, -20, 0, 14) -- Tinggi diperkecil
 errorMessage.BackgroundTransparency = 1
-errorMessage.Font = Enum.Font.Gotham
+errorMessage.Font = Enum.Font.SourceSansSemibold
 errorMessage.TextColor3 = Color3.fromRGB(255, 255, 255)
-errorMessage.TextSize = 14 * scaleFactor
+errorMessage.TextSize = 12 -- Ukuran font diperkecil
 errorMessage.Text = "REQUIRES RED FOX, DRAGONFLY, OR RACCOON!"
 errorMessage.Parent = errorFrame
 
+--------------------------------------------------------------------------------
 -- Instructions Section
+--------------------------------------------------------------------------------
 local instructionsFrame = Instance.new("Frame")
 instructionsFrame.Name = "InstructionsFrame"
-instructionsFrame.Size = UDim2.new(1, 0, 0, 120 * scaleFactor)
+instructionsFrame.Size = UDim2.new(1, 0, 0, 110) -- Tinggi diperkecil
 instructionsFrame.BackgroundTransparency = 1
 instructionsFrame.Parent = mainFrame
 
-local instructionsLayout = Instance.new("UIListLayout")
-instructionsLayout.FillDirection = Enum.FillDirection.Vertical
-instructionsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-instructionsLayout.Padding = UDim.new(0, 8 * scaleFactor)
-instructionsLayout.Parent = instructionsFrame
+local instructionsListLayout = Instance.new("UIListLayout")
+instructionsListLayout.FillDirection = Enum.FillDirection.Vertical
+instructionsListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left -- Instruksi rata kiri
+instructionsListLayout.Padding = UDim.new(0, 4) -- Padding diperkecil
+instructionsListLayout.Parent = instructionsFrame
 
--- Instructions Icon
+-- Icon Instruksi (kertas/daftar)
 local instructionsIcon = Instance.new("ImageLabel")
 instructionsIcon.Name = "InstructionsIcon"
-instructionsIcon.Size = UDim2.new(0, 25 * scaleFactor, 0, 25 * scaleFactor)
+instructionsIcon.Size = UDim2.new(0, 20, 0, 20) -- Ukuran ikon diperkecil
 instructionsIcon.BackgroundTransparency = 1
-instructionsIcon.Image = "rbxassetid://5971485304"
-instructionsIcon.Parent = instructionsFrame
+instructionsIcon.Image = "rbxassetid://5971485304" -- Ganti dengan ID ikon dokumen/instruksi yang sesuai
+instructionsIcon.Parent = instructionsFrame -- Akan ditempatkan di atas instruksi
 
--- Instructions Text
+-- Instruksi teks
 local instructions = {
     "1. Hold a RED FOX/DRAGONFLY/RACCOON",
     "2. Keep inventory open",
@@ -281,85 +224,85 @@ local instructions = {
 
 for i, text in ipairs(instructions) do
     local instText = Instance.new("TextLabel")
-    instText.Name = "InstructionsText"..i
-    instText.Size = UDim2.new(1, 0, 0, 20 * scaleFactor)
+    instText.Name = "InstructionsText" .. i
+    instText.Size = UDim2.new(1, 0, 0, 16) -- Tinggi diperkecil
     instText.BackgroundTransparency = 1
-    instText.Font = Enum.Font.Gotham
+    instText.Font = Enum.Font.SourceSansSemibold
     instText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    instText.TextSize = 15 * scaleFactor
+    instText.TextSize = 13 -- Ukuran font diperkecil
     instText.TextXAlignment = Enum.TextXAlignment.Left
     instText.Text = text
     instText.Parent = instructionsFrame
 end
 
+--------------------------------------------------------------------------------
 -- Success Rate Section
+--------------------------------------------------------------------------------
 local successRateFrame = Instance.new("Frame")
 successRateFrame.Name = "SuccessRateFrame"
-successRateFrame.Size = UDim2.new(1, 0, 0, 25 * scaleFactor)
+successRateFrame.Size = UDim2.new(1, 0, 0, 20) -- Tinggi diperkecil
 successRateFrame.BackgroundTransparency = 1
 successRateFrame.Parent = mainFrame
 
-local successLayout = Instance.new("UIListLayout")
-successLayout.FillDirection = Enum.FillDirection.Horizontal
-successLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-successLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-successLayout.Padding = UDim.new(0, 8 * scaleFactor)
-successLayout.Parent = successRateFrame
+local successRateListLayout = Instance.new("UIListLayout")
+successRateListLayout.FillDirection = Enum.FillDirection.Horizontal
+successRateListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+successRateListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+successRateListLayout.Padding = UDim.new(0, 4) -- Padding diperkecil
+successRateListLayout.Parent = successRateFrame
 
--- Check Icon
+-- Icon Centang Hijau
 local checkIcon = Instance.new("ImageLabel")
 checkIcon.Name = "CheckIcon"
-checkIcon.Size = UDim2.new(0, 20 * scaleFactor, 0, 20 * scaleFactor)
+checkIcon.Size = UDim2.new(0, 18, 0, 18) -- Ukuran ikon diperkecil
 checkIcon.BackgroundTransparency = 1
-checkIcon.Image = "rbxassetid://269661448"
-checkIcon.ImageColor3 = Color3.fromRGB(0, 255, 0)
+checkIcon.Image = "rbxassetid://269661448" -- Ganti dengan ID ikon centang hijau yang sesuai
 checkIcon.Parent = successRateFrame
 
--- Success Rate Text
+-- Text "92% Success Rate"
 local successRateText = Instance.new("TextLabel")
 successRateText.Name = "SuccessRateText"
-successRateText.Size = UDim2.new(0, 150 * scaleFactor, 0, 25 * scaleFactor)
+successRateText.Size = UDim2.new(0, 130, 0, 20)
 successRateText.BackgroundTransparency = 1
-successRateText.Font = Enum.Font.GothamBold
-successRateText.TextColor3 = Color3.fromRGB(0, 255, 0)
-successRateText.TextSize = 16 * scaleFactor
+successRateText.Font = Enum.Font.SourceSansBold
+successRateText.TextColor3 = Color3.fromRGB(0, 255, 0) -- Warna hijau
+successRateText.TextSize = 16 -- Ukuran font diperkecil
 successRateText.Text = "92% Success Rate"
 successRateText.TextXAlignment = Enum.TextXAlignment.Left
 successRateText.Parent = successRateFrame
 
--- Try Again Button (larger for mobile)
+--------------------------------------------------------------------------------
+-- Try Again Button
+--------------------------------------------------------------------------------
 local tryAgainButton = Instance.new("TextButton")
 tryAgainButton.Name = "TryAgainButton"
-tryAgainButton.Size = UDim2.new(1, 0, 0, 50 * scaleFactor)
-tryAgainButton.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
+tryAgainButton.Size = UDim2.new(0.8, 0, 0, 40) -- Tinggi tombol diperkecil
+tryAgainButton.BackgroundColor3 = Color3.fromRGB(200, 30, 30) -- Warna merah tombol
 tryAgainButton.BorderSizePixel = 0
-tryAgainButton.Font = Enum.Font.GothamBold
+tryAgainButton.Font = Enum.Font.SourceSansBold
 tryAgainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-tryAgainButton.TextSize = 18 * scaleFactor
+tryAgainButton.TextSize = 20 -- Ukuran font diperkecil
 tryAgainButton.Text = "TRY AGAIN"
 tryAgainButton.Parent = mainFrame
 
+-- Tambahkan UICorner ke tombol
 local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 8 * scaleFactor)
+buttonCorner.CornerRadius = UDim.new(0, 8) -- Sesuaikan radius
 buttonCorner.Parent = tryAgainButton
 
--- Button animation
+-- Contoh event saat tombol diklik (bisa diganti sesuai kebutuhanmu)
 tryAgainButton.MouseButton1Click:Connect(function()
-    -- Pulse animation
-    local tweenIn = TweenService:Create(tryAgainButton, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(230, 50, 50)})
-    local tweenOut = TweenService:Create(tryAgainButton, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(200, 30, 30)})
-    tweenIn:Play()
-    tweenIn.Completed:Connect(function()
-        tweenOut:Play()
-    end)
-    
-    print("Duplication process started...")
+    print("Tombol 'TRY AGAIN' diklik!")
+    -- Di sini kamu bisa menambahkan logika ketika tombol diklik
+    -- Misalnya, mencoba lagi proses dupe, dll.
 end)
 
--- Footer
+--------------------------------------------------------------------------------
+-- Footer (Discord Link)
+--------------------------------------------------------------------------------
 local footerFrame = Instance.new("Frame")
 footerFrame.Name = "FooterFrame"
-footerFrame.Size = UDim2.new(1, 0, 0, 20 * scaleFactor)
+footerFrame.Size = UDim2.new(1, 0, 0, 18) -- Tinggi footer diperkecil
 footerFrame.BackgroundTransparency = 1
 footerFrame.Parent = mainFrame
 
@@ -367,10 +310,32 @@ local footerText = Instance.new("TextLabel")
 footerText.Name = "FooterText"
 footerText.Size = UDim2.new(1, 0, 1, 0)
 footerText.BackgroundTransparency = 1
-footerText.Font = Enum.Font.Gotham
+footerText.Font = Enum.Font.SourceSansLight
 footerText.TextColor3 = Color3.fromRGB(150, 150, 150)
-footerText.TextSize = 12 * scaleFactor
+footerText.TextSize = 10 -- Ukuran font diperkecil
 footerText.Text = "Daizz Duper X © 2025 | VIP Build #8271 | discord.gg/daizz"
 footerText.Parent = footerFrame
 
-print("Mobile-optimized DAIZZ DUPER X GUI loaded successfully!")
+print("GUI 'DAIZZ DUPER X' telah dimuat!")
+
+--------------------------------------------------------------------------------
+-- Sistem Sembunyikan/Tampilkan GUI (Alternatif Keyboard untuk PC)
+--------------------------------------------------------------------------------
+local toggleKey = Enum.KeyCode.Insert -- Tombol untuk menyembunyikan/menampilkan GUI (bisa diganti)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    -- Pastikan input bukan dari game (misal: mengetik di chat)
+    if not gameProcessedEvent and input.KeyCode == toggleKey then
+        isGuiVisible = not isGuiVisible -- Balik status visibilitas
+        screenGui.Enabled = isGuiVisible -- Terapkan status ke ScreenGui
+
+        if isGuiVisible then
+            print("GUI 'DAIZZ DUPER X' ditampilkan (via keyboard).")
+        else
+            print("GUI 'DAIZZ DUPER X' disembunyikan (via keyboard).")
+        end
+    end
+end)
+
+print("Tekan tombol 'mata' di GUI atau tombol '" .. toggleKey.Name .. "' untuk menyembunyikan/menampilkan GUI.")
+print("Tekan tombol 'X' di GUI untuk menghapus GUI.")
