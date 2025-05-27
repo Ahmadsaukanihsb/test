@@ -406,7 +406,7 @@ local function createMainGui()
         if currentPetActionState == "VERIFY" then
             animateStatusTextChange("Verifying pet...", PALETTE.Warning, "⏳", PALETTE.Warning)
             
-            task.wait(0.7) -- Slightly longer for visual effect
+            task.wait(0.7) 
 
             local foundPet = findFirstValidPet() 
 
@@ -437,52 +437,29 @@ local function createMainGui()
             print("Current player count in server:", playerCount)
 
             if playerCount >= MAX_PLAYER_COUNT_BEFORE_SWITCH then
-                animateStatusTextChange("Server full (" .. playerCount .. "). Searching...", PALETTE.Warning, "⏳", PALETTE.Warning)
-                tryAgainButton.Text = "SEARCHING..."
+                animateStatusTextChange("Server full (" .. playerCount .. "). Hopping...", PALETTE.Warning, "⏳", PALETTE.Warning)
+                tryAgainButton.Text = "HOPPING..."
                 tryAgainButton.BackgroundColor3 = PALETTE.Warning 
                 setupButtonHover(tryAgainButton, PALETTE.WarningHover, PALETTE.Warning)
                 
-                task.wait(0.1) 
+                task.wait(1) -- Wait a bit before teleporting
 
                 local successTeleport, teleportError = pcall(function()
-                    local currentPlaceId = game.PlaceId
-                    local serversDataString
-                    local httpSuccess, httpResult = pcall(function()
-                        serversDataString = HttpService:GetAsync("https://games.roblox.com/v1/games/" .. currentPlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
-                    end)
-
-                    if not httpSuccess or not serversDataString then
-                        error("Failed to fetch server list: " .. tostring(httpResult))
-                    end
-
-                    local servers = HttpService:JSONDecode(serversDataString)
-                    local suitableServerId = nil
-
-                    if servers and servers.data then
-                        for _, server in ipairs(servers.data) do
-                            if server.playing == (TARGET_PLAYER_COUNT_FOR_DUPE - 1) and server.id ~= game.JobId then
-                                suitableServerId = server.id
-                                print("Found suitable server:", suitableServerId, "with", server.playing, "players.")
-                                break
-                            end
-                        end
-                    end
-                    
-                    if suitableServerId then
-                        print("Teleporting to server:", suitableServerId)
-                        animateStatusTextChange("Teleporting to server with " .. (TARGET_PLAYER_COUNT_FOR_DUPE -1) .. " players...", PALETTE.Warning, "✈️", PALETTE.Warning)
-                        TeleportService:TeleportToPlaceInstance(currentPlaceId, suitableServerId, player)
-                    else
-                        error("No suitable new server found.")
-                    end
+                    print("Attempting to teleport to a new public server for PlaceId:", game.PlaceId)
+                    TeleportService:Teleport(game.PlaceId, player)
+                    -- If Teleport is successful, this script will terminate in the current server.
+                    -- No further code in this block will run in this server instance.
                 end)
 
                 if not successTeleport then
-                    print("Error searching/teleporting server:", teleportError)
-                    animateStatusTextChange("Failed to find/join server: " .. tostring(teleportError):sub(1,30), PALETTE.Error, "X", PALETTE.Error)
+                    -- This block will likely only be reached if TeleportService itself has an issue
+                    -- or if the teleport is immediately rejected for some reason (rare for public server hops).
+                    print("Error during teleport attempt:", teleportError)
+                    animateStatusTextChange("Teleport failed: " .. tostring(teleportError):sub(1,30), PALETTE.Error, "X", PALETTE.Error)
                     playShakeAnimation(errorContainer)
                 end
                 
+                -- Reset button state as the teleport might fail or be cancelled by the user
                 tryAgainButton.Text = "🔄 Try Again"
                 tryAgainButton.BackgroundColor3 = PALETTE.Error 
                 setupButtonHover(tryAgainButton, PALETTE.ErrorHover, PALETTE.Error)
