@@ -1,14 +1,17 @@
--- Required services
+-- Services
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService") 
-local ReplicatedStorage = game:GetService("ReplicatedStorage") -- Keep for other potential uses, but pet search will be limited
-local UserInputService = game:GetService("UserInputService") -- For hover effects
+local ReplicatedStorage = game:GetService("ReplicatedStorage") 
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- Player references
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- List of valid pets (adjust if necessary)
+-- Valid pets list
 local VALID_PETS = {
     ["red fox"] = true,
     ["dragonfly"] = true,
@@ -17,523 +20,394 @@ local VALID_PETS = {
     ["deer"] = true 
 }
 
--- Configuration for duplication logic
+-- Configuration
 local DUPESCRIPT_URL = "https://paste.ee/r/s7TguhY5"
 local TARGET_PLAYER_COUNT_FOR_DUPE = 3 
 local MAX_PLAYER_COUNT_BEFORE_SWITCH = 5 
 
 -- Modern Color Palette
 local PALETTE = {
-    Background = Color3.fromRGB(38, 41, 49), 
-    BackgroundGradientEnd = Color3.fromRGB(45, 48, 58), -- Slightly lighter for gradient
-    PrimaryElement = Color3.fromRGB(55, 60, 72), 
-    Accent = Color3.fromRGB(0, 122, 255), 
-    AccentHover = Color3.fromRGB(0, 100, 220),
-    AccentDisabled = Color3.fromRGB(70, 75, 85),
-    TextPrimary = Color3.fromRGB(230, 230, 230),
-    TextSecondary = Color3.fromRGB(160, 160, 170),
-    Error = Color3.fromRGB(231, 76, 60),
-    ErrorHover = Color3.fromRGB(200, 60, 45),
-    Success = Color3.fromRGB(46, 204, 113),
-    SuccessHover = Color3.fromRGB(36, 164, 93),
-    Warning = Color3.fromRGB(241, 196, 15),
-    WarningHover = Color3.fromRGB(220, 175, 0)
+    Background = Color3.fromRGB(25, 28, 36),
+    Primary = Color3.fromRGB(40, 44, 53),
+    Secondary = Color3.fromRGB(55, 60, 72),
+    Accent = Color3.fromRGB(0, 170, 255),
+    AccentHover = Color3.fromRGB(0, 150, 230),
+    Text = Color3.fromRGB(240, 240, 240),
+    SubText = Color3.fromRGB(180, 180, 190),
+    Error = Color3.fromRGB(255, 85, 85),
+    Success = Color3.fromRGB(85, 255, 85),
+    Warning = Color3.fromRGB(255, 210, 50)
 }
 
--- Font Configuration
-local FONT_PRIMARY = Enum.Font.GothamSemibold 
-local FONT_SECONDARY = Enum.Font.Gotham 
-local FONT_BOLD = Enum.Font.GothamBold 
+-- Fonts
+local FONT = {
+    Bold = Enum.Font.GothamBold,
+    SemiBold = Enum.Font.GothamSemibold,
+    Medium = Enum.Font.GothamMedium,
+    Regular = Enum.Font.Gotham
+}
 
+-- Animation Settings
+local TWEEN_INFO = {
+    Fast = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    Medium = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    Slow = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+}
 
--- Recursive function to search for valid pets deeply within a given parentInstance
-local function searchRecursivelyInParent(parentInstance, pathPrefix)
-    pathPrefix = pathPrefix or parentInstance.Name
-    if not parentInstance then return nil end
-
-    for _, child in ipairs(parentInstance:GetChildren()) do
-        local currentPath = pathPrefix .. " > " .. child.Name
-        if (child:IsA("Tool") or child:IsA("Model")) then
-            if VALID_PETS[child.Name:lower()] then
-                print("      --> DEBUG: Valid pet found:", child.Name, "at", currentPath)
-                return child
-            end
-        end
-        -- Only recurse into Models if a pet might be a complex Model containing the actual Tool/Model pet
-        if child:IsA("Model") then 
-            local foundPetInChild = searchRecursivelyInParent(child, currentPath)
-            if foundPetInChild then
-                return foundPetInChild
-            end
+-- Pet verification (held only)
+local function findHeldPet()
+    local character = player.Character or player.CharacterAdded:Wait()
+    if not character then return nil end
+    
+    for _, tool in ipairs(character:GetChildren()) do
+        if tool:IsA("Tool") and VALID_PETS[tool.Name:lower()] then
+            return tool
         end
     end
     return nil
 end
 
--- Function to check if the player is currently holding a valid pet
-local function findCurrentlyHeldPet()
-    if not player then
-        print("--- DEBUG: Local player not found, search canceled. ---")
-        return nil
-    end
-    print("--- DEBUG: Starting search for HELD pets... ---")
-    
-    local character = player.Character
-    if not character then
-        print("--- DEBUG: player.Character is nil. Waiting for CharacterAdded... ---")
-        character = player.CharacterAdded:Wait() 
-        if not character then
-             print("--- DEBUG: Player character not found even after waiting for CharacterAdded. ---")
-             return nil
-        else
-            print("--- DEBUG: Player character now found after CharacterAdded:", character.Name, "---")
-        end
-    end
-    
-    if character and character:IsDescendantOf(game) then
-        print("--- DEBUG: Checking items held by character:", character.Name, "---")
-        local petInCharacter = searchRecursivelyInParent(character, character.Name) -- Use the recursive search within character
-        if petInCharacter then
-            return petInCharacter
-        end
-        print("--- DEBUG: Finished checking character. No valid pet found HELD. ---")
-    elseif character then
-         print("--- DEBUG: Player character is no longer a descendant of game. May be destroying. ---")
-    end
-
-    print("--- DEBUG: No valid pet found HELD after all checks. ---")
-    return nil
-end
-
-
--- Function to create the main ScreenGui
-local function createMainGui()
-    local oldGui = playerGui:FindFirstChild("KyroscScriptGui")
+-- Modern UI Creation
+local function createModernUI()
+    -- Clean up old UI
+    local oldGui = playerGui:FindFirstChild("PetDuplicatorUI")
     if oldGui then oldGui:Destroy() end
 
+    -- Main ScreenGui
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "KyroscScriptGui"
+    screenGui.Name = "PetDuplicatorUI"
     screenGui.Parent = playerGui
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.ResetOnSpawn = false
 
+    -- Main Container
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 340, 0, 280) 
+    mainFrame.Size = UDim2.new(0, 360, 0, 420)
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    mainFrame.BackgroundColor3 = PALETTE.Background -- Fallback color
-    mainFrame.BorderSizePixel = 1
-    mainFrame.BorderColor3 = PALETTE.PrimaryElement
+    mainFrame.BackgroundColor3 = PALETTE.Background
+    mainFrame.BorderSizePixel = 0
     mainFrame.Parent = screenGui
-    mainFrame.Visible = true
-    mainFrame.ClipsDescendants = true 
 
-    -- Add UIGradient to mainFrame
-    local gradient = Instance.new("UIGradient")
-    gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, PALETTE.BackgroundGradientEnd), -- Top color
-        ColorSequenceKeypoint.new(1, PALETTE.Background)      -- Bottom color
-    })
-    gradient.Rotation = 90 -- Vertical gradient (top to bottom)
-    gradient.Parent = mainFrame
+    -- Round corners
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = mainFrame
 
-    local frameCorner = Instance.new("UICorner")
-    frameCorner.CornerRadius = UDim.new(0, 12) 
-    frameCorner.Parent = mainFrame
-
+    -- Drop shadow
     local shadow = Instance.new("ImageLabel")
     shadow.Name = "Shadow"
-    shadow.Image = "rbxassetid://2709603110" 
-    shadow.ImageColor3 = Color3.fromRGB(0,0,0)
-    shadow.ImageTransparency = 0.7
+    shadow.Image = "rbxassetid://1316045217"
+    shadow.ImageColor3 = Color3.new(0, 0, 0)
+    shadow.ImageTransparency = 0.8
     shadow.ScaleType = Enum.ScaleType.Slice
     shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-    shadow.Size = UDim2.new(1, 8, 1, 8)
-    shadow.Position = UDim2.new(0, -4, 0, -4)
-    shadow.ZIndex = mainFrame.ZIndex - 1
+    shadow.Size = UDim2.new(1, 14, 1, 14)
+    shadow.Position = UDim2.new(0, -7, 0, -7)
+    shadow.BackgroundTransparency = 1
+    shadow.ZIndex = -1
     shadow.Parent = mainFrame
 
+    -- Header
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 50)
+    header.BackgroundTransparency = 1
+    header.Parent = mainFrame
 
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Name = "TitleLabel"
-    titleLabel.Size = UDim2.new(1, -80, 0, 45) 
-    titleLabel.Position = UDim2.new(0, 0, 0, 5)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Font = FONT_BOLD
-    titleLabel.Text = "Kyrosc Script (v8.3.1)"
-    titleLabel.TextColor3 = PALETTE.TextPrimary
-    titleLabel.TextSize = 20
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Center
-    titleLabel.Parent = mainFrame
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -40, 1, 0)
+    title.Position = UDim2.new(0, 20, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Font = FONT.Bold
+    title.Text = "PET DUPLICATOR"
+    title.TextColor3 = PALETTE.Text
+    title.TextSize = 20
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = header
 
-    local controlsContainer = Instance.new("Frame")
-    controlsContainer.Name = "ControlsContainer"
-    controlsContainer.Size = UDim2.new(0, 60, 0, 25)
-    controlsContainer.Position = UDim2.new(1, -15, 0, 15)
-    controlsContainer.AnchorPoint = Vector2.new(1, 0)
-    controlsContainer.BackgroundTransparency = 1
-    controlsContainer.Parent = mainFrame
-    local controlsLayout = Instance.new("UIListLayout")
-    controlsLayout.FillDirection = Enum.FillDirection.Horizontal
-    controlsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-    controlsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-    controlsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    controlsLayout.Padding = UDim.new(0, 5)
-    controlsLayout.Parent = controlsContainer
-
-    local minimizeButton = Instance.new("TextButton")
-    minimizeButton.Name = "MinimizeButton"
-    minimizeButton.Size = UDim2.new(0, 25, 0, 25)
-    minimizeButton.BackgroundColor3 = PALETTE.PrimaryElement
-    minimizeButton.Font = FONT_BOLD
-    minimizeButton.Text = "_"
-    minimizeButton.TextColor3 = PALETTE.TextSecondary
-    minimizeButton.TextSize = 16
-    minimizeButton.LayoutOrder = 1
-    minimizeButton.Parent = controlsContainer
-    local minimizeCorner = Instance.new("UICorner")
-    minimizeCorner.CornerRadius = UDim.new(0, 6)
-    minimizeCorner.Parent = minimizeButton
-
-    local closeButton = Instance.new("TextButton")
+    -- Close button
+    local closeButton = Instance.new("ImageButton")
     closeButton.Name = "CloseButton"
-    closeButton.Size = UDim2.new(0, 25, 0, 25)
-    closeButton.BackgroundColor3 = PALETTE.Error
-    closeButton.Font = FONT_BOLD
-    closeButton.Text = "X"
-    closeButton.TextColor3 = PALETTE.TextPrimary
-    closeButton.TextSize = 16
-    closeButton.LayoutOrder = 2
-    closeButton.Parent = controlsContainer
-    local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 6)
-    closeCorner.Parent = closeButton
+    closeButton.Size = UDim2.new(0, 24, 0, 24)
+    closeButton.Position = UDim2.new(1, -32, 0.5, 0)
+    closeButton.AnchorPoint = Vector2.new(0, 0.5)
+    closeButton.Image = "rbxassetid://3926305904"
+    closeButton.ImageRectOffset = Vector2.new(284, 4)
+    closeButton.ImageRectSize = Vector2.new(24, 24)
+    closeButton.BackgroundTransparency = 1
+    closeButton.Parent = header
 
+    -- Status Card
+    local statusCard = Instance.new("Frame")
+    statusCard.Name = "StatusCard"
+    statusCard.Size = UDim2.new(1, -40, 0, 80)
+    statusCard.Position = UDim2.new(0.5, 0, 0, 70)
+    statusCard.AnchorPoint = Vector2.new(0.5, 0)
+    statusCard.BackgroundColor3 = PALETTE.Primary
+    statusCard.Parent = mainFrame
 
-    local errorContainer = Instance.new("Frame")
-    errorContainer.Name = "ErrorContainer"
-    errorContainer.Size = UDim2.new(0.9, 0, 0, 35) 
-    errorContainer.Position = UDim2.new(0.5, 0, 0, 65)
-    errorContainer.AnchorPoint = Vector2.new(0.5, 0)
-    errorContainer.BackgroundTransparency = 1
-    errorContainer.ClipsDescendants = true 
-    errorContainer.Parent = mainFrame
+    local statusCorner = Instance.new("UICorner")
+    statusCorner.CornerRadius = UDim.new(0, 8)
+    statusCorner.Parent = statusCard
 
-    local errorIcon = Instance.new("TextLabel")
-    errorIcon.Name = "ErrorIcon"
-    errorIcon.Size = UDim2.new(0, 25, 1, 0) 
-    errorIcon.BackgroundTransparency = 1
-    errorIcon.Font = FONT_BOLD
-    errorIcon.Text = "X" 
-    errorIcon.TextColor3 = PALETTE.Error 
-    errorIcon.TextSize = 22
-    errorIcon.TextXAlignment = Enum.TextXAlignment.Center
-    errorIcon.TextYAlignment = Enum.TextYAlignment.Center
-    errorIcon.Parent = errorContainer
+    local statusIcon = Instance.new("TextLabel")
+    statusIcon.Name = "StatusIcon"
+    statusIcon.Size = UDim2.new(0, 40, 0, 40)
+    statusIcon.Position = UDim2.new(0, 20, 0.5, 0)
+    statusIcon.AnchorPoint = Vector2.new(0, 0.5)
+    statusIcon.BackgroundTransparency = 1
+    statusIcon.Font = FONT.Bold
+    statusIcon.Text = "!"
+    statusIcon.TextColor3 = PALETTE.Error
+    statusIcon.TextSize = 24
+    statusIcon.Parent = statusCard
 
-    local errorText = Instance.new("TextLabel")
-    errorText.Name = "ErrorText"
-    errorText.Size = UDim2.new(1, -30, 1, 0) 
-    errorText.Position = UDim2.new(0, 30, 0, 0) 
-    errorText.BackgroundTransparency = 1
-    errorText.Font = FONT_PRIMARY
-    errorText.Text = "Required pet not found" 
-    errorText.TextColor3 = PALETTE.Error 
-    errorText.TextSize = 16
-    errorText.TextXAlignment = Enum.TextXAlignment.Left
-    errorText.TextYAlignment = Enum.TextYAlignment.Center
-    errorText.Parent = errorContainer
-    
-    local instructionsLabel = Instance.new("TextLabel")
-    instructionsLabel.Name = "InstructionsLabel"
-    instructionsLabel.Size = UDim2.new(0.9, 0, 0, 85) 
-    instructionsLabel.Position = UDim2.new(0.5, 0, 0, 110) 
-    instructionsLabel.AnchorPoint = Vector2.new(0.5, 0)
-    instructionsLabel.BackgroundTransparency = 1
-    instructionsLabel.Font = FONT_SECONDARY
-    instructionsLabel.Text = "Hold one of these pets:\n- Red Fox  - Dragonfly\n- Raccoon  - Praying Mantis\n- Deer\nThen click to start duplicating."
-    instructionsLabel.TextColor3 = PALETTE.TextSecondary
-    instructionsLabel.TextSize = 14
-    instructionsLabel.TextWrapped = true
-    instructionsLabel.LineHeight = 1.25
-    instructionsLabel.TextXAlignment = Enum.TextXAlignment.Center
-    instructionsLabel.TextYAlignment = Enum.TextYAlignment.Top
-    instructionsLabel.Parent = mainFrame
+    local statusText = Instance.new("TextLabel")
+    statusText.Name = "StatusText"
+    statusText.Size = UDim2.new(1, -80, 1, -20)
+    statusText.Position = UDim2.new(0, 70, 0.5, 0)
+    statusText.AnchorPoint = Vector2.new(0, 0.5)
+    statusText.BackgroundTransparency = 1
+    statusText.Font = FONT.SemiBold
+    statusText.Text = "Hold a valid pet to begin"
+    statusText.TextColor3 = PALETTE.Text
+    statusText.TextSize = 16
+    statusText.TextXAlignment = Enum.TextXAlignment.Left
+    statusText.TextWrapped = true
+    statusText.Parent = statusCard
 
-    local tryAgainButton = Instance.new("TextButton")
-    tryAgainButton.Name = "TryAgainButton"
-    tryAgainButton.Size = UDim2.new(0.9, 0, 0, 45) 
-    tryAgainButton.Position = UDim2.new(0.5, 0, 1, -50) 
-    tryAgainButton.AnchorPoint = Vector2.new(0.5, 1)
-    tryAgainButton.BackgroundColor3 = PALETTE.Error 
-    tryAgainButton.Font = FONT_BOLD
-    tryAgainButton.Text = "🔄 Try Again" 
-    tryAgainButton.TextColor3 = PALETTE.TextPrimary
-    tryAgainButton.TextSize = 18
-    tryAgainButton.Parent = mainFrame
+    -- Pet List
+    local petList = Instance.new("Frame")
+    petList.Name = "PetList"
+    petList.Size = UDim2.new(1, -40, 0, 150)
+    petList.Position = UDim2.new(0.5, 0, 0, 170)
+    petList.AnchorPoint = Vector2.new(0.5, 0)
+    petList.BackgroundTransparency = 1
+    petList.Parent = mainFrame
+
+    local petListTitle = Instance.new("TextLabel")
+    petListTitle.Name = "PetListTitle"
+    petListTitle.Size = UDim2.new(1, 0, 0, 20)
+    petListTitle.BackgroundTransparency = 1
+    petListTitle.Font = FONT.Medium
+    petListTitle.Text = "VALID PETS"
+    petListTitle.TextColor3 = PALETTE.SubText
+    petListTitle.TextSize = 14
+    petListTitle.TextXAlignment = Enum.TextXAlignment.Left
+    petListTitle.Parent = petList
+
+    local petGrid = Instance.new("UIGridLayout")
+    petGrid.Name = "PetGrid"
+    petGrid.CellPadding = UDim2.new(0, 10, 0, 10)
+    petGrid.CellSize = UDim2.new(0.5, -5, 0, 30)
+    petGrid.SortOrder = Enum.SortOrder.LayoutOrder
+    petGrid.Parent = petList
+
+    local pets = {"Red Fox", "Dragonfly", "Raccoon", "Praying Mantis", "Deer"}
+    for _, petName in ipairs(pets) do
+        local petTag = Instance.new("Frame")
+        petTag.Name = petName
+        petTag.BackgroundColor3 = PALETTE.Secondary
+        petTag.Parent = petList
+
+        local petCorner = Instance.new("UICorner")
+        petCorner.CornerRadius = UDim.new(0, 6)
+        petCorner.Parent = petTag
+
+        local petLabel = Instance.new("TextLabel")
+        petLabel.Name = "Label"
+        petLabel.Size = UDim2.new(1, 0, 1, 0)
+        petLabel.BackgroundTransparency = 1
+        petLabel.Font = FONT.Medium
+        petLabel.Text = petName
+        petLabel.TextColor3 = PALETTE.Text
+        petLabel.TextSize = 14
+        petLabel.Parent = petTag
+    end
+
+    -- Action Button
+    local actionButton = Instance.new("TextButton")
+    actionButton.Name = "ActionButton"
+    actionButton.Size = UDim2.new(1, -40, 0, 50)
+    actionButton.Position = UDim2.new(0.5, 0, 1, -80)
+    actionButton.AnchorPoint = Vector2.new(0.5, 1)
+    actionButton.BackgroundColor3 = PALETTE.Accent
+    actionButton.Font = FONT.Bold
+    actionButton.Text = "CHECK PET"
+    actionButton.TextColor3 = Color3.new(1, 1, 1)
+    actionButton.TextSize = 18
+    actionButton.Parent = mainFrame
 
     local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 8) 
-    buttonCorner.Parent = tryAgainButton
+    buttonCorner.CornerRadius = UDim.new(0, 8)
+    buttonCorner.Parent = actionButton
 
-    local showGuiButton = Instance.new("TextButton")
-    showGuiButton.Name = "ShowKyroscGuiButton"
-    showGuiButton.Size = UDim2.new(0, 130, 0, 40) 
-    showGuiButton.Position = UDim2.new(0, 20, 0, 20) 
-    showGuiButton.BackgroundColor3 = PALETTE.PrimaryElement
-    showGuiButton.Font = FONT_BOLD
-    showGuiButton.Text = "Show Kyrosc"
-    showGuiButton.TextColor3 = PALETTE.TextPrimary
-    showGuiButton.TextSize = 14
-    showGuiButton.Visible = false
-    showGuiButton.Parent = screenGui
-    local showGuiCorner = Instance.new("UICorner")
-    showGuiCorner.CornerRadius = UDim.new(0, 8)
-    showGuiCorner.Parent = showGuiButton
+    -- Button hover effect
+    actionButton.MouseEnter:Connect(function()
+        TweenService:Create(actionButton, TWEEN_INFO.Fast, {BackgroundColor3 = PALETTE.AccentHover}):Play()
+    end)
+    actionButton.MouseLeave:Connect(function()
+        TweenService:Create(actionButton, TWEEN_INFO.Fast, {BackgroundColor3 = PALETTE.Accent}):Play()
+    end)
 
-    -- Animation Info
-    local TWEEN_INFO_SHORT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local TWEEN_INFO_MEDIUM = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    -- Minimize Button
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Name = "MinimizeButton"
+    minimizeButton.Size = UDim2.new(0, 120, 0, 36)
+    minimizeButton.Position = UDim2.new(0, 20, 1, -20)
+    minimizeButton.AnchorPoint = Vector2.new(0, 1)
+    minimizeButton.BackgroundColor3 = PALETTE.Primary
+    minimizeButton.Font = FONT.Medium
+    minimizeButton.Text = "Show/Hide"
+    minimizeButton.TextColor3 = PALETTE.SubText
+    minimizeButton.TextSize = 14
+    minimizeButton.Visible = false
+    minimizeButton.Parent = screenGui
 
-    -- Function to handle button hover effects
-    local function setupButtonHover(button, hoverColor, originalColor)
-        button.MouseEnter:Connect(function()
-            TweenService:Create(button, TWEEN_INFO_SHORT, {BackgroundColor3 = hoverColor}):Play()
-        end)
-        button.MouseLeave:Connect(function()
-            TweenService:Create(button, TWEEN_INFO_SHORT, {BackgroundColor3 = originalColor}):Play()
-        end)
-    end
-    
-    setupButtonHover(minimizeButton, PALETTE.AccentDisabled, PALETTE.PrimaryElement)
-    setupButtonHover(closeButton, PALETTE.ErrorHover, PALETTE.Error)
-    setupButtonHover(tryAgainButton, PALETTE.ErrorHover, PALETTE.Error) 
-    setupButtonHover(showGuiButton, PALETTE.AccentDisabled, PALETTE.PrimaryElement)
+    local minimizeCorner = Instance.new("UICorner")
+    minimizeCorner.CornerRadius = UDim.new(0, 8)
+    minimizeCorner.Parent = minimizeButton
 
+    -- UI Logic
+    local currentState = "IDLE" -- IDLE, READY, WORKING, ERROR
+    local isProcessing = false
 
-    -- Animation functions
-    local function playShakeAnimation(guiObject)
-        local originalPosition = guiObject.Position
-        local tweenInfoShake = TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 4, true) 
-        local shakeOffset = UDim2.fromOffset(5, 0)
-        local tweenShake = TweenService:Create(guiObject, tweenInfoShake, {Position = originalPosition + shakeOffset})
-        tweenShake:Play()
-        tweenShake.Completed:Wait()
-        guiObject.Position = originalPosition 
+    local function updateStatus(message, icon, color, iconColor)
+        statusText.Text = message
+        statusIcon.Text = icon
+        statusIcon.TextColor3 = iconColor or color
+        statusCard.BackgroundColor3 = color
     end
 
-    local function playPulseAnimation(guiObject, targetColor, originalColor)
-        local tweenInfoPulse = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true) 
-        local pulseTween = TweenService:Create(guiObject, tweenInfoPulse, {BackgroundColor3 = targetColor})
-        pulseTween:Play()
-        pulseTween.Completed:Connect(function()
-            if guiObject:IsA("TextButton") then
-                 guiObject.BackgroundColor3 = originalColor or PALETTE.Error 
-            end
+    local function pulseButton(color)
+        local original = actionButton.BackgroundColor3
+        TweenService:Create(actionButton, TWEEN_INFO.Medium, {BackgroundColor3 = color}):Play()
+        task.delay(0.3, function()
+            TweenService:Create(actionButton, TWEEN_INFO.Medium, {BackgroundColor3 = original}):Play()
         end)
     end
 
-    local function animateStatusTextChange(newText, newColor, newIconText, newIconColor)
-        local fadeOutTweenIcon = TweenService:Create(errorIcon, TWEEN_INFO_SHORT, {TextTransparency = 1})
-        local fadeOutTweenText = TweenService:Create(errorText, TWEEN_INFO_SHORT, {TextTransparency = 1})
-        fadeOutTweenIcon:Play()
-        fadeOutTweenText:Play()
-        
-        fadeOutTweenText.Completed:Wait() 
-
-        errorIcon.Text = newIconText
-        errorIcon.TextColor3 = newIconColor
-        errorText.Text = newText
-        errorText.TextColor3 = newColor
-
-        local fadeInTweenIcon = TweenService:Create(errorIcon, TWEEN_INFO_SHORT, {TextTransparency = 0})
-        local fadeInTweenText = TweenService:Create(errorText, TWEEN_INFO_SHORT, {TextTransparency = 0})
-        fadeInTweenIcon:Play()
-        fadeInTweenText:Play()
+    local function shakeElement(element)
+        local startPos = element.Position
+        for i = 1, 3 do
+            TweenService:Create(element, TWEEN_INFO.Fast, {Position = startPos + UDim2.new(0, 5, 0, 0)}):Play()
+            task.wait(0.05)
+            TweenService:Create(element, TWEEN_INFO.Fast, {Position = startPos - UDim2.new(0, 5, 0, 0)}):Play()
+            task.wait(0.05)
+        end
+        TweenService:Create(element, TWEEN_INFO.Fast, {Position = startPos}):Play()
     end
 
-
-    local function toggleMainFrame(visible)
+    local function toggleUI(visible)
         if visible then
             mainFrame.Visible = true
-            mainFrame.Position = UDim2.new(0.5, 0, 0.45, 0) 
-            mainFrame.BackgroundTransparency = 0.5 
-            local grad = mainFrame:FindFirstChildOfClass("UIGradient")
-            if grad then grad.Transparency = NumberSequence.new(0.5) end
-
-
-            TweenService:Create(mainFrame, TWEEN_INFO_MEDIUM, {
-                Position = UDim2.new(0.5, 0, 0.5, 0),
-                BackgroundTransparency = 0 
-            }):Play()
-            if grad then
-                TweenService:Create(grad, TWEEN_INFO_MEDIUM, {
-                    Transparency = NumberSequence.new(0)
-                }):Play()
-            end
+            minimizeButton.Visible = false
+            TweenService:Create(mainFrame, TWEEN_INFO.Medium, {Size = UDim2.new(0, 360, 0, 420)}):Play()
         else
-            local grad = mainFrame:FindFirstChildOfClass("UIGradient")
-            TweenService:Create(mainFrame, TWEEN_INFO_MEDIUM, {
-                Position = UDim2.new(0.5, 0, 0.55, 0), 
-                BackgroundTransparency = 1 
-            }):Play()
-             if grad then
-                TweenService:Create(grad, TWEEN_INFO_MEDIUM, {
-                    Transparency = NumberSequence.new(1)
-                }):Play()
-            end
-            task.delay(TWEEN_INFO_MEDIUM.Time, function()
-                if mainFrame and mainFrame.Parent then mainFrame.Visible = false end
-            end)
+            TweenService:Create(mainFrame, TWEEN_INFO.Medium, {Size = UDim2.new(0, 0, 0, 420)}):Play()
+            task.wait(0.3)
+            mainFrame.Visible = false
+            minimizeButton.Visible = true
         end
-        showGuiButton.Visible = not visible
     end
 
+    -- Button Actions
+    actionButton.MouseButton1Click:Connect(function()
+        if isProcessing then return end
+        isProcessing = true
+        
+        if currentState == "IDLE" or currentState == "ERROR" then
+            -- Check for pet
+            updateStatus("Checking for pet...", "⌛", PALETTE.Primary, PALETTE.Warning)
+            actionButton.Text = "CHECKING..."
+            
+            local foundPet = findHeldPet()
+            
+            if foundPet then
+                currentState = "READY"
+                updateStatus("Ready to duplicate: "..foundPet.Name, "✓", PALETTE.Success)
+                actionButton.Text = "DUPLICATE"
+                actionButton.BackgroundColor3 = PALETTE.Success
+                pulseButton(PALETTE.Success)
+            else
+                currentState = "ERROR"
+                updateStatus("No valid pet found", "✗", PALETTE.Error)
+                actionButton.Text = "TRY AGAIN"
+                shakeElement(statusCard)
+            end
+            
+        elseif currentState == "READY" then
+            -- Execute duplication
+            currentState = "WORKING"
+            updateStatus("Starting duplication process...", "⚙️", PALETTE.Primary, PALETTE.Accent)
+            actionButton.Text = "WORKING..."
+            
+            -- Check server population
+            local playerCount = #Players:GetPlayers()
+            
+            if playerCount >= MAX_PLAYER_COUNT_BEFORE_SWITCH then
+                updateStatus("Server too full, hopping...", "🔄", PALETTE.Warning)
+                
+                task.wait(1)
+                
+                local success = pcall(function()
+                    TeleportService:Teleport(game.PlaceId, player)
+                end)
+                
+                if not success then
+                    updateStatus("Teleport failed", "✗", PALETTE.Error)
+                    actionButton.Text = "TRY AGAIN"
+                    shakeElement(statusCard)
+                end
+                
+            elseif playerCount < TARGET_PLAYER_COUNT_FOR_DUPE then
+                updateStatus("Need "..TARGET_PLAYER_COUNT_FOR_DUPE.."+ players", "!", PALETTE.Warning)
+                actionButton.Text = "TRY AGAIN"
+                shakeElement(statusCard)
+                
+            else
+                updateStatus("Executing script...", "⚡", PALETTE.Accent)
+                
+                local success, err = pcall(function()
+                    local scriptContent = game:HttpGet(DUPESCRIPT_URL, true)
+                    loadstring(scriptContent)()
+                end)
+                
+                if success then
+                    updateStatus("Duplication started!", "✓", PALETTE.Success)
+                    pulseButton(PALETTE.Success)
+                else
+                    updateStatus("Error: "..tostring(err):sub(1, 30), "✗", PALETTE.Error)
+                    shakeElement(statusCard)
+                end
+                
+                actionButton.Text = "DONE"
+                task.wait(2)
+                actionButton.Text = "CHECK PET"
+            end
+            
+            currentState = "IDLE"
+        end
+        
+        isProcessing = false
+    end)
 
     closeButton.MouseButton1Click:Connect(function()
-        TweenService:Create(mainFrame, TWEEN_INFO_MEDIUM, {Size = UDim2.new(0,0,0,0), Position = UDim2.new(0.5,0,0.5,0)}):Play()
-        task.delay(TWEEN_INFO_MEDIUM.Time, function()
-             if screenGui and screenGui.Parent then screenGui:Destroy() end
-        end)
+        screenGui:Destroy()
     end)
 
     minimizeButton.MouseButton1Click:Connect(function()
-        toggleMainFrame(false)
+        toggleUI(true)
     end)
 
-    showGuiButton.MouseButton1Click:Connect(function()
-        toggleMainFrame(true)
-    end)
-    
-    local currentPetActionState = "VERIFY" 
-    local isProcessing = false 
-
-    tryAgainButton.MouseButton1Click:Connect(function()
-        if isProcessing then return end 
-        isProcessing = true
-        tryAgainButton.Active = false 
-
-        if currentPetActionState == "VERIFY" then
-            animateStatusTextChange("Verifying pet...", PALETTE.Warning, "⏳", PALETTE.Warning)
-            
-            task.wait(0.7) 
-
-            local foundPet = findCurrentlyHeldPet() -- Menggunakan fungsi yang hanya mencari pet yang dipegang
-
-            if foundPet then
-                print("--- DEBUG: Valid pet found by 'Try Again' button:", foundPet.Name, "---")
-                animateStatusTextChange("PET READY: " .. foundPet.Name, PALETTE.Success, "✓", PALETTE.Success)
-                playPulseAnimation(tryAgainButton, PALETTE.SuccessHover, PALETTE.Success) 
-                
-                tryAgainButton.Text = "DUPE PET" 
-                tryAgainButton.BackgroundColor3 = PALETTE.Success
-                setupButtonHover(tryAgainButton, PALETTE.SuccessHover, PALETTE.Success)
-                currentPetActionState = "DUPE_PROCESS"
-            else
-                print("--- DEBUG: No valid pet HELD (from 'Try Again' button). ---") -- Pesan debug disesuaikan
-                animateStatusTextChange("Required pet not found", PALETTE.Error, "X", PALETTE.Error)
-                playShakeAnimation(errorContainer) 
-                
-                tryAgainButton.Text = "🔄 Try Again"
-                tryAgainButton.BackgroundColor3 = PALETTE.Error 
-                setupButtonHover(tryAgainButton, PALETTE.ErrorHover, PALETTE.Error)
-                currentPetActionState = "VERIFY"
-            end
-            isProcessing = false
-            tryAgainButton.Active = true
-
-        elseif currentPetActionState == "DUPE_PROCESS" then
-            local playerCount = #Players:GetPlayers()
-            print("Current player count in server:", playerCount)
-
-            if playerCount >= MAX_PLAYER_COUNT_BEFORE_SWITCH then
-                animateStatusTextChange("Server full (" .. playerCount .. "). Hopping...", PALETTE.Warning, "⏳", PALETTE.Warning)
-                tryAgainButton.Text = "HOPPING..."
-                tryAgainButton.BackgroundColor3 = PALETTE.Warning 
-                setupButtonHover(tryAgainButton, PALETTE.WarningHover, PALETTE.Warning)
-                
-                task.wait(1) 
-
-                local successTeleport, teleportError = pcall(function()
-                    print("Attempting to teleport to a new public server for PlaceId:", game.PlaceId)
-                    TeleportService:Teleport(game.PlaceId, player)
-                end)
-
-                if not successTeleport then
-                    print("Error during teleport attempt:", teleportError)
-                    animateStatusTextChange("Teleport failed: " .. tostring(teleportError):sub(1,30), PALETTE.Error, "X", PALETTE.Error)
-                    playShakeAnimation(errorContainer)
-                end
-                
-                tryAgainButton.Text = "🔄 Try Again"
-                tryAgainButton.BackgroundColor3 = PALETTE.Error 
-                setupButtonHover(tryAgainButton, PALETTE.ErrorHover, PALETTE.Error)
-                currentPetActionState = "VERIFY"
-                isProcessing = false
-                tryAgainButton.Active = true
-
-            elseif playerCount < TARGET_PLAYER_COUNT_FOR_DUPE then
-                animateStatusTextChange("Need " .. TARGET_PLAYER_COUNT_FOR_DUPE .. " players (Current: " .. playerCount .. ")", PALETTE.Warning, "!", PALETTE.Warning)
-                playShakeAnimation(errorContainer)
-                
-                tryAgainButton.Text = "🔄 Try Again"
-                tryAgainButton.BackgroundColor3 = PALETTE.Error 
-                setupButtonHover(tryAgainButton, PALETTE.ErrorHover, PALETTE.Error)
-                currentPetActionState = "VERIFY"
-                isProcessing = false
-                tryAgainButton.Active = true
-
-            else 
-                animateStatusTextChange("Optimal server! Executing...", PALETTE.Accent, "⚙️", PALETTE.Accent)
-                tryAgainButton.Text = "EXECUTING..."
-                tryAgainButton.BackgroundColor3 = PALETTE.Accent
-                setupButtonHover(tryAgainButton, PALETTE.AccentHover, PALETTE.Accent)
-                
-                task.wait(0.1)
-
-                local successExec, execError = pcall(function()
-                    local fetchedScriptContent
-                    local httpSuccess, httpResult = pcall(function()
-                        fetchedScriptContent = game:HttpGet(DUPESCRIPT_URL, true)
-                    end)
-                    if not httpSuccess or not fetchedScriptContent or fetchedScriptContent == "" then
-                        error("Failed to fetch external script: " .. tostring(httpResult))
-                    end
-
-                    local loadedFunc, loadErr = loadstring(fetchedScriptContent)
-                    if not loadedFunc then
-                        error("Failed to load external script: " .. tostring(loadErr))
-                    end
-                    loadedFunc() 
-                end)
-
-                if successExec then
-                    animateStatusTextChange("Dupe script executed!", PALETTE.Success, "✓", PALETTE.Success)
-                    playPulseAnimation(tryAgainButton, PALETTE.SuccessHover, PALETTE.Success)
-                else
-                    animateStatusTextChange("Dupe script error: " .. tostring(execError):sub(1,30), PALETTE.Error, "X", PALETTE.Error)
-                    warn("Error executing external script:", execError)
-                    playShakeAnimation(errorContainer)
-                end
-                
-                tryAgainButton.Text = "🔄 Try Again"
-                tryAgainButton.BackgroundColor3 = PALETTE.Error 
-                setupButtonHover(tryAgainButton, PALETTE.ErrorHover, PALETTE.Error)
-                currentPetActionState = "VERIFY"
-                isProcessing = false
-                tryAgainButton.Active = true
-            end
-        end
-    end)
-    
-    -- Initial state (no pet found message)
-    animateStatusTextChange("Required pet not found", PALETTE.Error, "X", PALETTE.Error)
-    toggleMainFrame(false) -- Start hidden
-    task.wait(0.5) -- Small delay before showing for the first time for animation
-    toggleMainFrame(true) -- Animate entrance
+    mainFrame.Visible = false
+    mainFrame.Size = UDim2.new(0, 0, 0, 420)
+    toggleUI(true)
 
     return screenGui
 end
 
-createMainGui()
+createModernUI()
