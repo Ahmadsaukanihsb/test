@@ -4,6 +4,7 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui") -- Menggunakan CoreGui untuk GUI executor
+local UserInputService = game:GetService("UserInputService") -- Untuk mendeteksi input keyboard
 
 -- Hapus GUI lama jika ada untuk mencegah duplikasi saat eksekusi berulang
 if CoreGui:FindFirstChild("DuperGUI") then
@@ -20,8 +21,8 @@ screenGui.Parent = CoreGui -- Parent ke CoreGui
 -- Buat MainFrame (kotak utama)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 450, 0, 480) -- Sesuaikan ukuran
-mainFrame.Position = UDim2.new(0.5, -225, 0.5, -240) -- Tengah layar
+mainFrame.Size = UDim2.new(0, 350, 0, 400) -- Ukuran GUI diperkecil
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -200) -- Sesuaikan posisi agar tetap di tengah
 mainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
@@ -100,7 +101,7 @@ versionText.Parent = headerFrame
 --------------------------------------------------------------------------------
 local errorFrame = Instance.new("Frame")
 errorFrame.Name = "ErrorFrame"
-errorFrame.Size = UDim2.new(1, 0, 0, 100) -- Lebar penuh, tinggi 100
+errorFrame.Size = UDim2.new(1, 0, 0, 80) -- Tinggi diperkecil
 errorFrame.BackgroundColor3 = Color3.fromRGB(150, 0, 0) -- Warna merah gelap
 errorFrame.BorderSizePixel = 0
 errorFrame.Parent = mainFrame
@@ -121,7 +122,7 @@ errorListLayout.Parent = errorFrame
 -- Icon X Merah
 local errorIcon = Instance.new("ImageLabel")
 errorIcon.Name = "ErrorIcon"
-errorIcon.Size = UDim2.new(0, 40, 0, 40)
+errorIcon.Size = UDim2.new(0, 30, 0, 30) -- Ukuran ikon diperkecil
 errorIcon.BackgroundTransparency = 1
 errorIcon.Image = "rbxassetid://5404169722" -- Ganti dengan ID ikon X merah yang sesuai
 errorIcon.Parent = errorFrame
@@ -129,22 +130,22 @@ errorIcon.Parent = errorFrame
 -- Text "ERROR: REQUIRED PET NOT FOUND"
 local errorTitle = Instance.new("TextLabel")
 errorTitle.Name = "ErrorTitle"
-errorTitle.Size = UDim2.new(1, -20, 0, 25) -- Lebar penuh, dengan padding
+errorTitle.Size = UDim2.new(1, -20, 0, 20) -- Tinggi diperkecil
 errorTitle.BackgroundTransparency = 1
 errorTitle.Font = Enum.Font.SourceSansBold
 errorTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-errorTitle.TextSize = 20
+errorTitle.TextSize = 18
 errorTitle.Text = "ERROR: REQUIRED PET NOT FOUND"
 errorTitle.Parent = errorFrame
 
 -- Text "REQUIRES RED FOX, DRAGONFLY, OR RACCOON!"
 local errorMessage = Instance.new("TextLabel")
 errorMessage.Name = "ErrorMessage"
-errorMessage.Size = UDim2.new(1, -20, 0, 20)
+errorMessage.Size = UDim2.new(1, -20, 0, 16) -- Tinggi diperkecil
 errorMessage.BackgroundTransparency = 1
 errorMessage.Font = Enum.Font.SourceSansSemibold
 errorMessage.TextColor3 = Color3.fromRGB(255, 255, 255)
-errorMessage.TextSize = 16
+errorMessage.TextSize = 14
 errorMessage.Text = "REQUIRES RED FOX, DRAGONFLY, OR RACCOON!"
 errorMessage.Parent = errorFrame
 
@@ -153,7 +154,7 @@ errorMessage.Parent = errorFrame
 --------------------------------------------------------------------------------
 local instructionsFrame = Instance.new("Frame")
 instructionsFrame.Name = "InstructionsFrame"
-instructionsFrame.Size = UDim2.new(1, 0, 0, 160) -- Sesuaikan tinggi
+instructionsFrame.Size = UDim2.new(1, 0, 0, 130) -- Tinggi diperkecil
 instructionsFrame.BackgroundTransparency = 1
 instructionsFrame.Parent = mainFrame
 
@@ -166,7 +167,7 @@ instructionsListLayout.Parent = instructionsFrame
 -- Icon Instruksi (kertas/daftar)
 local instructionsIcon = Instance.new("ImageLabel")
 instructionsIcon.Name = "InstructionsIcon"
-instructionsIcon.Size = UDim2.new(0, 30, 0, 30)
+instructionsIcon.Size = UDim2.new(0, 25, 0, 25) -- Ukuran ikon diperkecil
 instructionsIcon.BackgroundTransparency = 1
 instructionsIcon.Image = "rbxassetid://5971485304" -- Ganti dengan ID ikon dokumen/instruksi yang sesuai
 instructionsIcon.Parent = instructionsFrame -- Akan ditempatkan di atas instruksi
@@ -182,11 +183,11 @@ local instructions = {
 for i, text in ipairs(instructions) do
     local instText = Instance.new("TextLabel")
     instText.Name = "InstructionsText" .. i
-    instText.Size = UDim2.new(1, 0, 0, 20)
+    instText.Size = UDim2.new(1, 0, 0, 18) -- Tinggi diperkecil
     instText.BackgroundTransparency = 1
     instText.Font = Enum.Font.SourceSansSemibold
     instText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    instText.TextSize = 16
+    instText.TextSize = 14
     instText.TextXAlignment = Enum.TextXAlignment.Left
     instText.Text = text
     instText.Parent = instructionsFrame
@@ -197,7 +198,7 @@ end
 --------------------------------------------------------------------------------
 local successRateFrame = Instance.new("Frame")
 successRateFrame.Name = "SuccessRateFrame"
-successRateFrame.Size = UDim2.new(1, 0, 0, 30)
+successRateFrame.Size = UDim2.new(1, 0, 0, 25) -- Tinggi diperkecil
 successRateFrame.BackgroundTransparency = 1
 successRateFrame.Parent = mainFrame
 
@@ -211,7 +212,7 @@ successRateListLayout.Parent = successRateFrame
 -- Icon Centang Hijau
 local checkIcon = Instance.new("ImageLabel")
 checkIcon.Name = "CheckIcon"
-checkIcon.Size = UDim2.new(0, 25, 0, 25)
+checkIcon.Size = UDim2.new(0, 20, 0, 20) -- Ukuran ikon diperkecil
 checkIcon.BackgroundTransparency = 1
 checkIcon.Image = "rbxassetid://269661448" -- Ganti dengan ID ikon centang hijau yang sesuai
 checkIcon.Parent = successRateFrame
@@ -219,11 +220,11 @@ checkIcon.Parent = successRateFrame
 -- Text "92% Success Rate"
 local successRateText = Instance.new("TextLabel")
 successRateText.Name = "SuccessRateText"
-successRateText.Size = UDim2.new(0, 150, 0, 30)
+successRateText.Size = UDim2.new(0, 150, 0, 25)
 successRateText.BackgroundTransparency = 1
 successRateText.Font = Enum.Font.SourceSansBold
 successRateText.TextColor3 = Color3.fromRGB(0, 255, 0) -- Warna hijau
-successRateText.TextSize = 20
+successRateText.TextSize = 18
 successRateText.Text = "92% Success Rate"
 successRateText.TextXAlignment = Enum.TextXAlignment.Left
 successRateText.Parent = successRateFrame
@@ -233,12 +234,12 @@ successRateText.Parent = successRateFrame
 --------------------------------------------------------------------------------
 local tryAgainButton = Instance.new("TextButton")
 tryAgainButton.Name = "TryAgainButton"
-tryAgainButton.Size = UDim2.new(0.8, 0, 0, 50) -- Lebar 80% dari parent, tinggi 50
+tryAgainButton.Size = UDim2.new(0.8, 0, 0, 45) -- Tinggi tombol diperkecil
 tryAgainButton.BackgroundColor3 = Color3.fromRGB(200, 30, 30) -- Warna merah tombol
 tryAgainButton.BorderSizePixel = 0
 tryAgainButton.Font = Enum.Font.SourceSansBold
 tryAgainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-tryAgainButton.TextSize = 24
+tryAgainButton.TextSize = 22
 tryAgainButton.Text = "TRY AGAIN"
 tryAgainButton.Parent = mainFrame
 
@@ -251,7 +252,7 @@ buttonCorner.Parent = tryAgainButton
 tryAgainButton.MouseButton1Click:Connect(function()
     print("Tombol 'TRY AGAIN' diklik!")
     -- Di sini kamu bisa menambahkan logika ketika tombol diklik
-    -- Misalnya, menyembunyikan GUI, mencoba lagi proses dupe, dll.
+    -- Misalnya, mencoba lagi proses dupe, dll.
 end)
 
 --------------------------------------------------------------------------------
@@ -274,3 +275,25 @@ footerText.Text = "Daizz Duper X © 2025 | VIP Build #8271 | discord.gg/daizz"
 footerText.Parent = footerFrame
 
 print("GUI 'DAIZZ DUPER X' telah dimuat!")
+
+--------------------------------------------------------------------------------
+-- Sistem Sembunyikan/Tampilkan GUI
+--------------------------------------------------------------------------------
+local isGuiVisible = true -- Status awal GUI (terlihat)
+local toggleKey = Enum.KeyCode.Insert -- Tombol untuk menyembunyikan/menampilkan GUI (bisa diganti)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    -- Pastikan input bukan dari game (misal: mengetik di chat)
+    if not gameProcessedEvent and input.KeyCode == toggleKey then
+        isGuiVisible = not isGuiVisible -- Balik status visibilitas
+        screenGui.Enabled = isGuiVisible -- Terapkan status ke ScreenGui
+
+        if isGuiVisible then
+            print("GUI 'DAIZZ DUPER X' ditampilkan.")
+        else
+            print("GUI 'DAIZZ DUPER X' disembunyikan. Tekan '" .. toggleKey.Name .. "' lagi untuk menampilkan.")
+        end
+    end
+end)
+
+print("Tekan tombol '" .. toggleKey.Name .. "' untuk menyembunyikan/menampilkan GUI.")
