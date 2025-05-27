@@ -1,15 +1,21 @@
--- LocalScript di dalam ScreenGui
+-- Script GUI DAIZZ DUPER X
+-- Dibuat untuk dieksekusi langsung melalui Delta Executor atau sejenisnya.
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local CoreGui = game:GetService("CoreGui") -- Menggunakan CoreGui untuk GUI executor
 
--- Buat ScreenGui (jika belum ada, tapi disarankan dibuat manual di StarterGui)
-local screenGui = script.Parent -- Asumsi LocalScript ini ada di dalam ScreenGui
+-- Hapus GUI lama jika ada untuk mencegah duplikasi saat eksekusi berulang
+if CoreGui:FindFirstChild("DuperGUI") then
+    CoreGui.DuperGUI:Destroy()
+end
 
--- Pastikan ScreenGui tidak reset saat spawn
-screenGui.ResetOnSpawn = false
-screenGui.DisplayOrder = 10 -- Pastikan muncul di atas GUI lainnya
+-- Buat ScreenGui baru
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DuperGUI"
+screenGui.DisplayOrder = 999 -- Pastikan GUI muncul di atas semua GUI lain
+screenGui.IgnoreGuiInset = true -- Mengabaikan inset GUI (misalnya, bar atas Roblox)
+screenGui.Parent = CoreGui -- Parent ke CoreGui
 
 -- Buat MainFrame (kotak utama)
 local mainFrame = Instance.new("Frame")
@@ -62,7 +68,7 @@ local lightningIcon = Instance.new("ImageLabel")
 lightningIcon.Name = "LightningIcon"
 lightningIcon.Size = UDim2.new(0, 25, 0, 25)
 lightningIcon.BackgroundTransparency = 1
-lightningIcon.Image = "rbxassetid://6034177579" -- Contoh ID ikon petir (cari ikon Roblox yang sesuai)
+lightningIcon.Image = "rbxassetid://6034177579" -- Ganti dengan ID ikon petir yang sesuai (contoh: warning icon)
 lightningIcon.Parent = headerFrame
 
 -- Judul "DAIZZ DUPER X"
@@ -117,8 +123,7 @@ local errorIcon = Instance.new("ImageLabel")
 errorIcon.Name = "ErrorIcon"
 errorIcon.Size = UDim2.new(0, 40, 0, 40)
 errorIcon.BackgroundTransparency = 1
-errorIcon.Image = "rbxassetid://6034177579" -- Kamu perlu menemukan ID ikon X merah atau mengunggahnya
--- Contoh icon error dari Roblox: rbxassetid://6034177579 (ini icon warning, cari yang lebih cocok)
+errorIcon.Image = "rbxassetid://5404169722" -- Ganti dengan ID ikon X merah yang sesuai
 errorIcon.Parent = errorFrame
 
 -- Text "ERROR: REQUIRED PET NOT FOUND"
@@ -163,7 +168,7 @@ local instructionsIcon = Instance.new("ImageLabel")
 instructionsIcon.Name = "InstructionsIcon"
 instructionsIcon.Size = UDim2.new(0, 30, 0, 30)
 instructionsIcon.BackgroundTransparency = 1
-instructionsIcon.Image = "rbxassetid://5971485304" -- Contoh ID ikon dokumen (cari yang sesuai)
+instructionsIcon.Image = "rbxassetid://5971485304" -- Ganti dengan ID ikon dokumen/instruksi yang sesuai
 instructionsIcon.Parent = instructionsFrame -- Akan ditempatkan di atas instruksi
 
 -- Instruksi teks
@@ -208,7 +213,7 @@ local checkIcon = Instance.new("ImageLabel")
 checkIcon.Name = "CheckIcon"
 checkIcon.Size = UDim2.new(0, 25, 0, 25)
 checkIcon.BackgroundTransparency = 1
-checkIcon.Image = "rbxassetid://6034177579" -- Cari ID ikon centang hijau yang sesuai (misalnya rbxassetid://6034177579 adalah warning, cari yang lain)
+checkIcon.Image = "rbxassetid://269661448" -- Ganti dengan ID ikon centang hijau yang sesuai
 checkIcon.Parent = successRateFrame
 
 -- Text "92% Success Rate"
@@ -267,3 +272,5 @@ footerText.TextColor3 = Color3.fromRGB(150, 150, 150)
 footerText.TextSize = 12
 footerText.Text = "Daizz Duper X © 2025 | VIP Build #8271 | discord.gg/daizz"
 footerText.Parent = footerFrame
+
+print("GUI 'DAIZZ DUPER X' telah dimuat!")
