@@ -3,7 +3,7 @@ local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService") 
-local ReplicatedStorage = game:GetService("ReplicatedStorage") -- Keep for other potential uses, but pet search will be limited
+local ReplicatedStorage = game:GetService("ReplicatedStorage") 
 local UserInputService = game:GetService("UserInputService") -- For hover effects
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -46,62 +46,41 @@ local FONT_SECONDARY = Enum.Font.Gotham
 local FONT_BOLD = Enum.Font.GothamBold 
 
 
--- Recursive function to search for valid pets deeply within a given parentInstance
-local function searchRecursivelyInParent(parentInstance, pathPrefix, searchContext)
-    pathPrefix = pathPrefix or parentInstance.Name
+-- Recursive function to search for a SPECIFIC NAMED Tool/Model within a given parentInstance
+local function findSpecificNamedItem(parentInstance, itemName, searchContext)
+    -- print("--- DEBUG ["..searchContext.."]: Searching for '", itemName, "' in '", parentInstance:GetFullName(), "' ---") -- Verbose, uncomment if needed
     if not parentInstance then return nil end
-
-    -- print("--- DEBUG ["..searchContext.."]: Iterating children of '", parentInstance:GetFullName(), "' ---")
 
     for i, child in ipairs(parentInstance:GetChildren()) do
         if not child or not child.Parent then 
-            print("  - DEBUG ["..searchContext.."]: Child "..i.." of '", parentInstance.Name, "' is invalid or has no parent.")
+            -- print("  - DEBUG ["..searchContext.."]: Child "..i.." of '", parentInstance.Name, "' is invalid or has no parent.")
             continue 
         end
-
-        local childName = child.Name
-        local childClassName = child.ClassName
-        local currentPath = pathPrefix .. " > " .. childName
-        print("  - DEBUG ["..searchContext.."]: Checking child "..i..": InstanceName='", childName, "' | ClassName='", childClassName, "' | Path: ", currentPath)
         
-        local childNameLower = ""
-        local successLower, resultLower = pcall(function() return childName:lower() end)
-        if successLower then
-            childNameLower = resultLower
-        else
-            print("    DEBUG ["..searchContext.."]: Failed to lowercase name for '", childName, "'. Skipping.")
-            continue
-        end
-
-        if (child:IsA("Tool") or child:IsA("Model")) then
-            print("    DEBUG ["..searchContext.."]: Item '", childName, "' is Tool/Model. Comparing '", childNameLower, "' with VALID_PETS...")
-            if VALID_PETS[childNameLower] then
-                print("      --> !!! DEBUG ["..searchContext.."]: VALID PET FOUND: '", childName, "' (", childNameLower, ") at '", currentPath, "' !!!")
-                return child
-            else
-                 print("      --> DEBUG ["..searchContext.."]: '", childNameLower, "' is NOT in VALID_PETS.")
-            end
+        -- print("  - DEBUG ["..searchContext.."]: Checking child '", child.Name, "'") -- Verbose
+        if (child:IsA("Tool") or child:IsA("Model")) and child.Name == itemName then
+            print("      --> !!! DEBUG ["..searchContext.."]: SPECIFIC ITEM FOUND: '", child.Name, "' !!!")
+            return child
         end
         
-        if child:IsA("Model") then 
-            print("    -- DEBUG ["..searchContext.."]: Item '", childName, "' is a Model. Searching recursively inside it. --")
-            local foundPetInChild = searchRecursivelyInParent(child, currentPath, "NestedInModel")
-            if foundPetInChild then
-                return foundPetInChild
+        if child:IsA("Model") or child:IsA("Folder") then 
+            -- print("    -- DEBUG ["..searchContext.."]: Item '", child.Name, "' is a container. Searching recursively. --") -- Verbose
+            local foundItem = findSpecificNamedItem(child, itemName, searchContext .. " > " .. child.Name)
+            if foundItem then
+                return foundItem
             end
-            print("    -- DEBUG ["..searchContext.."]: Finished recursive search in Model '", childName, "'. --")
         end
     end
     return nil
 end
 
--- Function to check if the player is currently holding a valid pet
-local function findCurrentlyHeldPet()
+-- Function to check conditions: held pet is in VALID_PETS and also exists in ReplicatedStorage
+local function findValidPetMeetingConditions()
     if not player then
         print("--- DEBUG: Local player not found, search canceled. ---")
         return nil
     end
-    print("--- DEBUG: Starting search for HELD pets... ---")
+    print("--- DEBUG: Starting search for HELD pet that is VALID and in ReplicatedStorage... ---")
     
     print("--- DEBUG: VALID_PETS list being used: ---")
     for petKey, _ in pairs(VALID_PETS) do print("  - Key: '", petKey, "'") end
@@ -118,19 +97,49 @@ local function findCurrentlyHeldPet()
         end
     end
     
-    if character and character:IsDescendantOf(game) then
-        print("--- DEBUG: Checking items HELD by character:", character.Name, "---")
-        local petInCharacter = searchRecursivelyInParent(character, character.Name, "Character") -- Pass "Character" as context
-        if petInCharacter then
-            print("--- DEBUG: Pet found in character search. Returning:", petInCharacter.Name, "---")
-            return petInCharacter
-        end
-        print("--- DEBUG: Finished checking character. No valid pet found HELD. ---")
-    elseif character then
-         print("--- DEBUG: Player character is no longer a descendant of game. May be destroying. ---")
+    if not (character and character:IsDescendantOf(game)) then
+        print("--- DEBUG: Character is not valid or not part of the game. ---")
+        return nil
     end
 
-    print("--- DEBUG: No valid pet found HELD after all checks. ---")
+    print("--- DEBUG: Checking items HELD by character:", character.Name, "---")
+    for _, heldItem in ipairs(character:GetChildren()) do
+        if not (heldItem and heldItem.Parent) then continue end
+
+        local heldItemName = heldItem.Name
+        local heldItemClassName = heldItem.ClassName
+        print("  - DEBUG [Character]: Checking held item: InstanceName='", heldItemName, "' | ClassName='", heldItemClassName, "'")
+
+        local heldItemNameLower = ""
+        local successLower, resultLower = pcall(function() return heldItemName:lower() end)
+        if successLower then
+            heldItemNameLower = resultLower
+        else
+            print("    DEBUG [Character]: Failed to lowercase name for '", heldItemName, "'. Skipping.")
+            continue
+        end
+
+        if (heldItem:IsA("Tool") or heldItem:IsA("Model")) then
+            print("    DEBUG [Character]: Item '", heldItemName, "' is Tool/Model.")
+            print("    1. Comparing '", heldItemNameLower, "' with VALID_PETS...")
+            if VALID_PETS[heldItemNameLower] then
+                print("      --> DEBUG [Character]: '", heldItemName, "' IS in VALID_PETS.")
+                print("    2. Now checking if '", heldItemName, "' (exact name) exists in ReplicatedStorage...")
+                
+                local itemInReplicatedStorage = findSpecificNamedItem(ReplicatedStorage, heldItemName, "ReplicatedStorage")
+
+                if itemInReplicatedStorage then
+                    print("        --> !!! DEBUG: MATCH FOUND! Held item '", heldItemName, "' is in VALID_PETS AND also exists in ReplicatedStorage. This is the valid pet. !!!")
+                    return heldItem -- This is the item the player is holding
+                else
+                    print("        --> DEBUG: Held item '", heldItemName, "' IS in VALID_PETS, but NOT found in ReplicatedStorage (by exact name).")
+                end
+            else
+                 print("      --> DEBUG [Character]: '", heldItemNameLower, "' is NOT in VALID_PETS.")
+            end
+        end
+    end
+    print("--- DEBUG: Finished checking character. No valid pet (meeting all criteria) found HELD. ---")
     return nil
 end
 
@@ -448,7 +457,7 @@ local function createMainGui()
             
             task.wait(0.7) 
 
-            local foundPet = findCurrentlyHeldPet() -- Menggunakan fungsi yang hanya mencari pet yang dipegang
+            local foundPet = findValidPetMeetingConditions() -- Menggunakan fungsi pencarian yang baru
 
             if foundPet then
                 print("--- DEBUG: Valid pet found by 'Try Again' button:", foundPet.Name, "---")
@@ -460,7 +469,7 @@ local function createMainGui()
                 setupButtonHover(tryAgainButton, PALETTE.SuccessHover, PALETTE.Success)
                 currentPetActionState = "DUPE_PROCESS"
             else
-                print("--- DEBUG: No valid pet HELD (from 'Try Again' button). ---") -- Pesan debug disesuaikan
+                print("--- DEBUG: No valid pet meeting conditions (from 'Try Again' button). ---")
                 animateStatusTextChange("Required pet not found", PALETTE.Error, "X", PALETTE.Error)
                 playShakeAnimation(errorContainer) 
                 
