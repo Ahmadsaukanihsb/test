@@ -69,12 +69,13 @@ local function searchRecursivelyForPet(parentInstance, pathPrefix)
 end
 
 -- Function to check if there is a valid pet (held or in ReplicatedStorage)
+-- Function to check if there is a valid pet (held by player only)
 local function findFirstValidPet()
     if not player then
         print("--- DEBUG: Local player not found, search canceled. ---")
         return nil
     end
-    print("--- DEBUG: Starting search for valid pets... ---")
+    print("--- DEBUG: Starting search for valid pets in player's hands... ---")
     
     local character = player.Character
     if not character then
@@ -82,31 +83,31 @@ local function findFirstValidPet()
         character = player.CharacterAdded:Wait() 
         if not character then
              print("--- DEBUG: Player character not found even after waiting for CharacterAdded. ---")
-        else
-            print("--- DEBUG: Player character now found after CharacterAdded:", character.Name, "---")
+             return nil
         end
     end
     
-    if character and character:IsDescendantOf(game) then
-        print("--- DEBUG: Checking items held by character:", character.Name, "---")
-        local petInCharacter = searchRecursivelyForPet(character, character.Name)
-        if petInCharacter then
-            return petInCharacter
+    -- Check humanoid first to ensure character is valid
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then
+        print("--- DEBUG: No humanoid found in character ---")
+        return nil
+    end
+    
+    -- Check tools in character (what player is holding)
+    for _, child in ipairs(character:GetChildren()) do
+        if child:IsA("Tool") then
+            local petName = child.Name:lower()
+            if VALID_PETS[petName] then
+                print("--- DEBUG: Valid pet found in player's hands:", child.Name, "---")
+                return child
+            else
+                print("--- DEBUG: Found tool but not valid pet:", child.Name, "---")
+            end
         end
-        print("--- DEBUG: Finished checking character. ---")
-    elseif character then
-         print("--- DEBUG: Player character is no longer a descendant of game. May be destroying. ---")
     end
-
-    print("--- DEBUG: Checking ReplicatedStorage ---")
-    local petInReplicatedStorage = searchRecursivelyForPet(ReplicatedStorage, "ReplicatedStorage")
-    if petInReplicatedStorage then
-        print("--- DEBUG: Valid pet found in ReplicatedStorage:", petInReplicatedStorage.Name, "---")
-        return petInReplicatedStorage
-    end
-    print("--- DEBUG: No valid pet found in ReplicatedStorage. ---")
-
-    print("--- DEBUG: No valid pet found after all checks. ---")
+    
+    print("--- DEBUG: No valid pet found in player's hands ---")
     return nil
 end
 
